@@ -56,8 +56,8 @@ if (!function_exists('getSeriesUrl')) {
     }
 }
 
-$page_title = "Elezzjoni 2026: Partit Laburista, Partit Nazzjonalista | il-hub.com";
-$page_description = "Segwi l-kampanja elettorali u d-dibattiti għall-Elezzjoni 2026. L-aħħar aġġornamenti mill-programmi tal-Partit Laburista u l-Partit Nazzjonalista, l-intervisti u l-attivitajiet politiċi f'Malta.";
+$page_title = "Arkivju: L-Elezzjoni 2026 | il-hub.com";
+$page_description = "Arkivju sħiħ tal-kampanja elettorali għall-Elezzjoni 2026 - il-programmi, id-dibattiti u l-intervisti tal-Partit Laburista u l-Partit Nazzjonalista f'Malta.";
 include 'header_frontend.php';
 ?>
 
@@ -74,11 +74,11 @@ include 'header_frontend.php';
         <!-- Text Content -->
         <div class="relative z-20 max-w-4xl mx-auto mt-auto mb-8">
             <p class="text-lg md:text-xl text-gray-200 mx-auto drop-shadow-md font-medium mb-3">
-                Il-programmi, id-dibattiti u l-intervisti politiċi kollha f'post wieħed. Segwi l-kampanja elettorali.
+                Il-programmi, id-dibattiti u l-intervisti politiċi kollha mill-Elezzjoni 2026, issa arkivjati f'post wieħed.
             </p>
             <p class="text-sm md:text-base text-gray-300 mx-auto drop-shadow-md">
-                Żomm ruħek infurmat(a) mad-dibattiti u l-iżviluppi ewlenin mill-kampanji elettorali għall-<strong>Elezzjoni 2026</strong>. 
-                Segwi dak li qed jintqal u jsir minn ta' quddiem, fl-attivitajiet u l-konferenzi stampa tal-<strong>Partit Laburista</strong> u l-<strong>Partit Nazzjonalista</strong> f'Malta.
+                Erġa' ara d-dibattiti u l-iżviluppi ewlenin mill-kampanji elettorali għall-<strong>Elezzjoni 2026</strong>.
+                Dak li ntqal u sar minn ta' quddiem, fl-attivitajiet u l-konferenzi stampa tal-<strong>Partit Laburista</strong> u l-<strong>Partit Nazzjonalista</strong> f'Malta.
             </p>
         </div>
     </section>
@@ -87,8 +87,7 @@ include 'header_frontend.php';
     <section class="max-w-4xl mx-auto">
         <?php if (empty($trail_items)): ?>
             <div class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 p-8 text-center">
-                <p class="text-gray-400 text-lg italic">Għad m'hemm l-ebda programm għal din il-kampanja.</p>
-                <p class="text-gray-500 text-sm mt-2">L-ewwel programmi jibdew jidhru hawn hekk kif tibda l-kampanja elettorali.</p>
+                <p class="text-gray-400 text-lg italic">Għad m'hemm l-ebda programm arkivjat għal din il-kampanja.</p>
             </div>
         <?php else: ?>
             <div class="relative border-l-4 border-orange-500/30 ml-3 md:ml-6 space-y-12 pb-12">

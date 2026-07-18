@@ -207,14 +207,8 @@ if (!isset($series_list)) {
                     </div>
                 </div>
 
-                <!-- Right Side: Search & Suggest & Election -->
+                <!-- Right Side: Search & Suggest -->
                 <div class="flex items-center space-x-4">
-                    
-                    <!-- New Election Campaign Button -->
-                    <a href="/election" class="hidden md:inline-flex items-center px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-red-600 to-orange-500 rounded-full shadow-md hover:shadow-orange-500/40 transition-all">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
-                        Elezzjoni 2026
-                    </a>
 
                     <a href="/search.php" class="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-gray-700/50" title="Fittex">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
