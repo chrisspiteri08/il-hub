@@ -8,6 +8,7 @@ if (!isset($tags_list) && isset($pdo)) {
     }
 }
 ?>
+<!-- git sync test: 2026-07-18 -->
 <footer class="bg-gray-900 border-t border-gray-800 pt-16 pb-8 mt-auto">
     <div class="container mx-auto px-4 sm:px-6 lg:px-8">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12">
