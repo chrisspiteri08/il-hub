@@ -22,7 +22,6 @@ if (!$episode_id) {
 // 3. Handle "Update Episode" form submission
 if (isset($_POST['update_episode'])) {
     $tag_ids = $_POST['tag_ids'] ?? [];
-    $wants_transcription = isset($_POST['do_transcribe']) ? 1 : 0;
 
     if (empty($tag_ids)) {
         $message = '<div class="bg-red-600 p-4 rounded-lg text-white">Error: You must select at least one category tag.</div>';
@@ -53,20 +52,6 @@ if (isset($_POST['update_episode'])) {
                 $tag_stmt->execute([$episode_id, $tag_id]);
             }
 
-            // NEW: Logic for the transcription queue (Reset if requested)
-            if ($wants_transcription) {
-                $sql = "INSERT INTO transcriptions (episode_id, status, raw_transcript, clean_transcript, summary, social_posts) 
-                        VALUES (?, 'pending', NULL, NULL, NULL, NULL)
-                        ON DUPLICATE KEY UPDATE 
-                        status='pending', 
-                        raw_transcript=NULL, 
-                        clean_transcript=NULL, 
-                        summary=NULL, 
-                        social_posts=NULL";
-                $trans_stmt = $pdo->prepare($sql);
-                $trans_stmt->execute([$episode_id]);
-            }
-            
             // Commit transaction
             $pdo->commit();
 
@@ -187,17 +172,6 @@ try {
             <div>
                 <label for="e_publish_date" class="block text-sm font-medium text-gray-300">Publish Date (Optional)</label>
                 <input type="datetime-local" name="publish_date" id="e_publish_date" class="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md shadow-sm text-white focus:border-orange-400 focus:ring focus:ring-orange-300 focus:ring-opacity-50" style="color-scheme: dark;" value="<?php echo !empty($episode['publish_date']) ? date('Y-m-d\TH:i', strtotime($episode['publish_date'])) : ''; ?>">
-            </div>
-
-            <!-- AI Transcription Option -->
-            <div class="p-4 bg-indigo-900/30 border border-indigo-500/50 rounded-lg mt-4 shadow-inner">
-                <label class="flex items-center space-x-3 cursor-pointer group">
-                    <input type="checkbox" name="do_transcribe" value="1" class="w-5 h-5 rounded text-indigo-500 focus:ring-indigo-400 transition-all group-hover:scale-110">
-                    <div>
-                        <span class="text-white font-bold block">Re-run AI Transcript & Summary</span>
-                        <span class="text-indigo-200 text-xs">Tick this to reset the process. Your MacBook will pick this up within 30 seconds.</span>
-                    </div>
-                </label>
             </div>
 
             <button type="submit" name="update_episode" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-colors mt-4">

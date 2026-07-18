@@ -321,8 +321,7 @@ if (isset($_POST['fetch_url'])) {
 if (isset($_POST['add_episode'])) {
     writeDebugLog("Add Episode manual form submission received.");
     $tag_ids = $_POST['tag_ids'] ?? [];
-    $wants_transcription = isset($_POST['do_transcribe']) ? 1 : 0;
-    
+
     if (empty($tag_ids) || empty($_POST['series_id'])) {
         writeDebugLog("Validation failed: Series or Category tags are empty.");
         $message = '<div class="bg-red-600 p-4 rounded-lg text-white">Error: You must select a Series and at least one Category Tag.</div>';
@@ -385,13 +384,6 @@ if (isset($_POST['add_episode'])) {
             }
             writeDebugLog("Inserted " . count($tag_ids) . " category tags.");
 
-            if ($wants_transcription) {
-                writeDebugLog("User checked AI transcription option. Enqueueing pending transcription record...");
-                $trans_stmt = $pdo->prepare("INSERT INTO transcriptions (episode_id, status, created_at) VALUES (?, 'pending', NOW())");
-                $trans_stmt->execute([$new_episode_id]);
-                writeDebugLog("Transcription successfully flagged as pending.");
-            }
-            
             writeDebugLog("Committing database transaction...");
             $pdo->commit();
             writeDebugLog("Database transaction successfully committed.");
@@ -526,16 +518,6 @@ if (isset($_POST['add_episode'])) {
                 <input type="datetime-local" name="publish_date" id="e_publish_date" class="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md shadow-sm text-white focus:border-orange-400 focus:ring focus:ring-orange-300 focus:ring-opacity-50" style="color-scheme: dark;" value="<?php echo htmlspecialchars($prefill['publish_date']); ?>">
             </div>
 
-            <!-- AI Transcription Option -->
-            <div class="p-4 bg-indigo-900/30 border border-indigo-500/50 rounded-lg mt-4 shadow-inner">
-                <label class="flex items-center space-x-3 cursor-pointer group">
-                    <input type="checkbox" name="do_transcribe" value="1" class="w-5 h-5 rounded text-indigo-500 focus:ring-indigo-400 transition-all group-hover:scale-110">
-                    <div>
-                        <span class="text-white font-bold block">Generate AI Transcript & Summary</span>
-                        <span class="text-indigo-200 text-xs">Your MacBook will automatically process this episode for search and social media.</span>
-                    </div>
-                </label>
-            </div>
 
             <button type="submit" name="add_episode" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-colors mt-4">
                 Add Episode

@@ -49,14 +49,14 @@ function writeToLog($pdo, $summary, $status = 'Success') {
 }
 
 /**
- * Smart Helper to automatically generate unique slugs and queue transcriptions
+ * Smart Helper to automatically generate a unique slug for a new episode
  */
-function updateSlugAndQueueTranscription($pdo, $episode_id, $title, $publish_date) {
+function updateSlug($pdo, $episode_id, $title, $publish_date) {
     // 1. Generate clean base slug
     $base_slug = strtolower($title);
     $base_slug = str_replace(
-        ['ċ', 'ġ', 'ħ', 'ż', 'à', 'è', 'ì', 'ò', 'ù'], 
-        ['c', 'g', 'h', 'z', 'a', 'e', 'i', 'o', 'u'], 
+        ['ċ', 'ġ', 'ħ', 'ż', 'à', 'è', 'ì', 'ò', 'ù'],
+        ['c', 'g', 'h', 'z', 'a', 'e', 'i', 'o', 'u'],
         $base_slug
     );
     $base_slug = preg_replace('/[^a-z0-9]+/', '-', $base_slug);
@@ -73,10 +73,6 @@ function updateSlugAndQueueTranscription($pdo, $episode_id, $title, $publish_dat
     // 3. Save the unique slug back to the episodes table
     $update_slug_stmt = $pdo->prepare("UPDATE episodes SET slug = ? WHERE id = ?");
     $update_slug_stmt->execute([$slug, $episode_id]);
-
-    // 4. Queue the transcription as 'pending' for your MacBook worker!
-    $trans_stmt = $pdo->prepare("INSERT INTO transcriptions (episode_id, status, created_at) VALUES (?, 'pending', NOW())");
-    $trans_stmt->execute([$episode_id]);
 }
 
 /**
@@ -449,7 +445,7 @@ try {
                             $new_episode_id = $pdo->lastInsertId();
                             
                             // Generate unique slug & enqueue transcription automatically
-                            updateSlugAndQueueTranscription($pdo, $new_episode_id, $title, $publish_date);
+                            updateSlug($pdo, $new_episode_id, $title, $publish_date);
 
                             $job_added_count++;
                             // --- UPDATED: Pass 'is_music' flag to storage array ---
@@ -534,7 +530,7 @@ try {
                         $new_episode_id = $pdo->lastInsertId();
                         
                         // Generate unique slug & enqueue transcription automatically
-                        updateSlugAndQueueTranscription($pdo, $new_episode_id, $details['title'], $details['publish_date']);
+                        updateSlug($pdo, $new_episode_id, $details['title'], $details['publish_date']);
 
                         $job_added_count++;
                         // --- UPDATED: Pass 'is_music' flag to storage array ---

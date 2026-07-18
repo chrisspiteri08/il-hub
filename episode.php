@@ -22,16 +22,11 @@ $fallback_id = $fallback_id ?? -1;
 // Improved query to handle slug/id safely without repeated named parameter issues
 try {
     $stmt = $pdo->prepare("
-        SELECT ep.*, s.title as series_title, s.slug as series_slug, 
-               t.clean_transcript as article_mt, t.clean_text_en as article_en, 
-               t.summary as summary_mt, t.summary_en as summary_en,
-               t.meta_title_mt, t.meta_desc_mt, t.h1_mt,
-               t.meta_title_en, t.meta_desc_en, t.h1_en
+        SELECT ep.*, s.title as series_title, s.slug as series_slug
         FROM episodes ep
         JOIN series s ON ep.series_id = s.id
-        LEFT JOIN transcriptions t ON ep.id = t.episode_id
-        WHERE ep.slug = :slug 
-           OR ep.id = :id 
+        WHERE ep.slug = :slug
+           OR ep.id = :id
            OR ep.id = :fallback_id
         LIMIT 1
     ");
@@ -47,65 +42,15 @@ try {
 
 if (!$episode) { header("Location: /index.php"); exit; }
 
-// Set dynamic SEO data for the header (Defaulting to English for search engines)
-$page_title = !empty($episode['meta_title_en']) ? $episode['meta_title_en'] : $episode['title'] . " | il-hub.com";
-$meta_description = !empty($episode['meta_desc_en']) ? $episode['meta_desc_en'] : ($episode['description'] ?? '');
+// Set dynamic SEO data for the header
+$page_title = $episode['title'] . " | il-hub.com";
+$meta_description = $episode['description'] ?? '';
 
 include 'header_frontend.php';
 
 function getYoutubeId($url) {
     preg_match('%(?:youtube(?:-nocookie)?\.com/(?:[^/]+/.+/|(?:v|e(?:mbed)?)/|.*[?&]v=)|youtu\.be/)([^"&?/ ]{11})%i', $url, $match);
     return $match[1] ?? null;
-}
-
-/**
- * Supercharged Formatter: Converts Markdown to HTML, handles plain text,
- * and cleans up any database encoding issues.
- */
-function format_article_content($text) {
-    if (empty($text)) return '';
-    
-    // 1. Decode entities in case the DB safely encoded <p> as &lt;p&gt;
-    $text = html_entity_decode($text, ENT_QUOTES, 'UTF-8');
-    
-    // 2. Convert Markdown headings to HTML
-    $text = preg_replace('/^### (.*?)$/m', '<h3>$1</h3>', $text);
-    $text = preg_replace('/^## (.*?)$/m', '<h2>$1</h2>', $text);
-    // Sometimes AI uses bold for headings on a new line
-    $text = preg_replace('/^\*\*([^\*]+)\*\*$/m', '<h2>$1</h2>', $text); 
-    // Sometimes AI uses native HTML bold tags on a new line instead of Markdown
-    $text = preg_replace('/^<(strong|b)>(.*?)<\/(strong|b)>$/m', '<h2>$2</h2>', $text);
-    // Regular bold
-    $text = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $text);
-    
-    // 3. Split by double newlines to isolate paragraphs and headings
-    $blocks = preg_split('/\n\s*\n/', trim($text));
-    $html = '';
-    
-    foreach ($blocks as $block) {
-        $block = trim($block);
-        if (empty($block)) continue;
-        
-        // If it's already an HTML heading, keep it clean
-        if (preg_match('/^<h[1-6]>/', $block)) {
-            $html .= $block . "\n";
-        } 
-        // If it already has <p> tags, just append it
-        elseif (strpos($block, '<p>') !== false) {
-            $html .= $block . "\n";
-        }
-        // Otherwise, it's raw text. Wrap in <p> and convert single newlines to <br>
-        else {
-            $html .= "<p>" . nl2br($block) . "</p>\n";
-        }
-    }
-    
-    // Inject Tailwind classes directly into the raw HTML tags so they look great
-    $html = str_replace('<h2>', '<h2 class="text-2xl md:text-3xl font-bold text-orange-500 mt-10 mb-4">', $html);
-    $html = str_replace('<h3>', '<h3 class="text-xl md:text-2xl font-bold text-orange-400 mt-8 mb-3">', $html);
-    $html = str_replace('<p>', '<p class="mb-5 leading-relaxed text-gray-200">', $html);
-    
-    return $html;
 }
 ?>
 
@@ -151,112 +96,24 @@ function format_article_content($text) {
                 </span>
             </div>
             
-            <!-- Dynamic H1 Titles -->
-            <h1 id="title-mt" class="text-3xl md:text-5xl font-extrabold text-white leading-tight">
-                <?php echo !empty($episode['h1_mt']) ? htmlspecialchars($episode['h1_mt']) : htmlspecialchars($episode['title']); ?>
-            </h1>
-            <h1 id="title-en" class="hidden text-3xl md:text-5xl font-extrabold text-white leading-tight">
-                <?php echo !empty($episode['h1_en']) ? htmlspecialchars($episode['h1_en']) : htmlspecialchars($episode['title']); ?>
+            <h1 class="text-3xl md:text-5xl font-extrabold text-white leading-tight">
+                <?php echo htmlspecialchars($episode['title']); ?>
             </h1>
         </div>
     </div>
 
-    <!-- Content Header & Language Switcher -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+    <!-- Content Header -->
+    <div class="flex items-center mb-8">
         <h2 class="text-2xl font-bold text-white flex items-center">
             <span class="w-2 h-8 bg-orange-500 rounded-full mr-4"></span>
             Dettalji tal-Episodju
         </h2>
-        
-        <div class="flex bg-gray-800 p-1.5 rounded-2xl border border-gray-700 w-fit">
-            <button onclick="setLang('mt')" id="btn-mt" class="px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-orange-600 text-white shadow-lg">Malti</button>
-            <button onclick="setLang('en')" id="btn-en" class="px-6 py-2.5 rounded-xl font-bold text-sm transition-all text-gray-400 hover:text-white">English</button>
-        </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <!-- Article Body -->
-        <div class="lg:col-span-2 space-y-8">
-            <div id="content-mt" class="lang-content bg-gray-800/40 p-8 md:p-12 rounded-3xl border border-gray-700 leading-relaxed text-gray-200 text-lg shadow-inner">
-                <?php if (!empty($episode['article_mt'])): ?>
-                    <div class="prose prose-invert max-w-none prose-orange">
-                        <?php echo format_article_content($episode['article_mt']); ?>
-                    </div>
-                <?php else: ?>
-                    <div class="flex flex-col items-center py-12 text-center">
-                        <div class="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p class="text-gray-500 italic">L-artiklu bil-Malti qed jinkiteb bl-AI...</p>
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <div id="content-en" class="lang-content hidden bg-gray-800/40 p-8 md:p-12 rounded-3xl border border-gray-700 leading-relaxed text-gray-200 text-lg shadow-inner">
-                <?php if (!empty($episode['article_en'])): ?>
-                    <div class="prose prose-invert max-w-none prose-orange">
-                        <?php echo format_article_content($episode['article_en']); ?>
-                    </div>
-                <?php else: ?>
-                    <div class="flex flex-col items-center py-12 text-center">
-                        <div class="w-12 h-12 border-4 border-gray-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-                        <p class="text-gray-500 italic">The English article is being prepared...</p>
-                    </div>
-                <?php endif; ?>
-            </div>
-        </div>
-
-        <!-- Sidebar Details -->
-        <div class="space-y-8">
-            <!-- Summary Box -->
-            <div class="bg-gradient-to-br from-orange-600/20 to-red-600/10 border border-orange-500/30 p-8 rounded-3xl shadow-xl">
-                <h3 class="text-orange-500 font-bold uppercase text-xs tracking-[0.2em] mb-4">Fil-Qosor</h3>
-                <div id="sum-mt" class="text-white text-xl font-semibold leading-snug prose prose-invert prose-orange">
-                    <?php 
-                        // Decodes entities, removes all HTML tags, and converts standard line breaks
-                        echo !empty($episode['summary_mt']) ? nl2br(strip_tags(html_entity_decode($episode['summary_mt'], ENT_QUOTES, 'UTF-8'))) : 'Il-punti ewlenin qed jiġu estratti...'; 
-                    ?>
-                </div>
-                <div id="sum-en" class="text-white text-xl font-semibold leading-snug hidden prose prose-invert prose-orange">
-                    <?php 
-                        echo !empty($episode['summary_en']) ? nl2br(strip_tags(html_entity_decode($episode['summary_en'], ENT_QUOTES, 'UTF-8'))) : 'Main points are being extracted...'; 
-                    ?>
-                </div>
-            </div>
-            
-            <!-- Description -->
-            <div class="bg-gray-800 p-8 rounded-3xl border border-gray-700 shadow-lg">
-                <h3 class="text-gray-500 font-bold uppercase text-xs tracking-widest mb-6 border-b border-gray-700 pb-4">Info Oriġinali</h3>
-                <p class="text-gray-400 text-sm leading-relaxed whitespace-pre-line"><?php echo htmlspecialchars($episode['description']); ?></p>
-            </div>
-        </div>
+    <!-- Description -->
+    <div class="bg-gray-800 p-8 rounded-3xl border border-gray-700 shadow-lg max-w-3xl">
+        <p class="text-gray-300 leading-relaxed whitespace-pre-line"><?php echo htmlspecialchars($episode['description']); ?></p>
     </div>
 </main>
-
-<script>
-function setLang(lang) {
-    // Toggle content blocks
-    document.querySelectorAll('.lang-content').forEach(el => el.classList.add('hidden'));
-    document.getElementById('content-' + lang).classList.remove('hidden');
-    
-    // Toggle summaries
-    document.getElementById('sum-mt').classList.toggle('hidden', lang !== 'mt');
-    document.getElementById('sum-en').classList.toggle('hidden', lang !== 'en');
-
-    // Toggle H1 titles
-    document.getElementById('title-mt').classList.toggle('hidden', lang !== 'mt');
-    document.getElementById('title-en').classList.toggle('hidden', lang !== 'en');
-
-    // Toggle button styles
-    const btnMt = document.getElementById('btn-mt');
-    const btnEn = document.getElementById('btn-en');
-    
-    if (lang === 'mt') {
-        btnMt.className = 'px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-orange-600 text-white shadow-lg';
-        btnEn.className = 'px-6 py-2.5 rounded-xl font-bold text-sm transition-all text-gray-400 hover:text-white';
-    } else {
-        btnEn.className = 'px-6 py-2.5 rounded-xl font-bold text-sm transition-all bg-orange-600 text-white shadow-lg';
-        btnMt.className = 'px-6 py-2.5 rounded-xl font-bold text-sm transition-all text-gray-400 hover:text-white';
-    }
-}
-</script>
 
 <?php include 'footer_frontend.php'; ?>
