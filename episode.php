@@ -111,9 +111,15 @@ function getYoutubeId($url) {
     </div>
 
     <!-- Description -->
+    <?php if (!empty(trim($episode['description']))): ?>
     <div class="bg-gray-800 p-8 rounded-3xl border border-gray-700 shadow-lg max-w-3xl">
         <p class="text-gray-300 leading-relaxed whitespace-pre-line"><?php echo htmlspecialchars($episode['description']); ?></p>
     </div>
+    <?php else: ?>
+    <div class="bg-gray-800 p-8 rounded-3xl border border-gray-700 shadow-lg max-w-3xl">
+        <p class="text-gray-500 italic">Deskrizzjoni mhux disponibbli għal dan l-episodju.</p>
+    </div>
+    <?php endif; ?>
 </main>
 
 <?php include 'footer_frontend.php'; ?>

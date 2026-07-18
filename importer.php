@@ -150,12 +150,22 @@ if (isset($_POST['fetch_url'])) {
                 @$doc->loadHTML($html);
                 $meta_tags = $doc->getElementsByTagName('meta');
 
+                $std_description = '';
+                $twitter_description = '';
                 foreach ($meta_tags as $meta) {
                     $property = $meta->getAttribute('property');
+                    $name = $meta->getAttribute('name');
                     $content = $meta->getAttribute('content');
                     if ($property == 'og:title') $prefill['title'] = $content;
                     if ($property == 'og:description') $prefill['description'] = $content;
                     if ($property == 'og:image') $prefill['thumbnail_url'] = $content;
+                    if ($name == 'description') $std_description = $content;
+                    if ($name == 'twitter:description') $twitter_description = $content;
+                }
+                // Not every site uses Open Graph tags; fall back to the
+                // standard SEO description meta tag, then a Twitter card.
+                if (empty($prefill['description'])) {
+                    $prefill['description'] = $std_description ?: $twitter_description;
                 }
 
                 // --- NEW JUNK VIDEO FILTER ---

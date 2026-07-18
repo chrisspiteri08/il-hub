@@ -253,13 +253,21 @@ if (isset($_POST['fetch_url'])) {
                     @$doc->loadHTML($html);
                     $meta_tags = $doc->getElementsByTagName('meta');
 
+                    $std_desc = '';
+                    $twitter_desc = '';
                     foreach ($meta_tags as $meta) {
                         $property = $meta->getAttribute('property');
+                        $name = $meta->getAttribute('name');
                         $content = $meta->getAttribute('content');
                         if ($property == 'og:title') $og_title = html_entity_decode($content, ENT_QUOTES, 'UTF-8');
                         if ($property == 'og:description') $og_desc = html_entity_decode($content, ENT_QUOTES, 'UTF-8');
                         if ($property == 'og:image') $og_image = $content;
+                        if ($name == 'description') $std_desc = html_entity_decode($content, ENT_QUOTES, 'UTF-8');
+                        if ($name == 'twitter:description') $twitter_desc = html_entity_decode($content, ENT_QUOTES, 'UTF-8');
                     }
+                    // Not every site uses Open Graph tags; fall back to the
+                    // standard SEO description meta tag, then a Twitter card.
+                    if (empty($og_desc)) $og_desc = $std_desc ?: $twitter_desc;
                 } else {
                     writeDebugLog("DOMDocument missing. Reverting to custom regular expression meta-parsing tags...");
                     if (preg_match('/<meta[^>]*property=["\']og:title["\'][^>]*content=["\']([^"\']*)["\']/i', $html, $matches)) {
@@ -271,6 +279,10 @@ if (isset($_POST['fetch_url'])) {
                     if (preg_match('/<meta[^>]*property=["\']og:description["\'][^>]*content=["\']([^"\']*)["\']/i', $html, $matches)) {
                         $og_desc = html_entity_decode($matches[1], ENT_QUOTES, 'UTF-8');
                     } elseif (preg_match('/<meta[^>]*content=["\']([^"\']*)["\'][^>]*property=["\']og:description["\']/i', $html, $matches)) {
+                        $og_desc = html_entity_decode($matches[1], ENT_QUOTES, 'UTF-8');
+                    } elseif (preg_match('/<meta[^>]*name=["\']description["\'][^>]*content=["\']([^"\']*)["\']/i', $html, $matches)) {
+                        $og_desc = html_entity_decode($matches[1], ENT_QUOTES, 'UTF-8');
+                    } elseif (preg_match('/<meta[^>]*content=["\']([^"\']*)["\'][^>]*name=["\']description["\']/i', $html, $matches)) {
                         $og_desc = html_entity_decode($matches[1], ENT_QUOTES, 'UTF-8');
                     }
 

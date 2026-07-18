@@ -165,15 +165,24 @@ function scrapeEpisodePage($episode_url) {
     ];
 
     // 1. Try Meta Tags
+    $og_description = '';
+    $std_description = '';
+    $twitter_description = '';
     foreach ($meta_tags as $meta) {
         $property = $meta->getAttribute('property');
+        $name = $meta->getAttribute('name');
         $content = $meta->getAttribute('content');
 
         if ($property == 'og:title') $details['title'] = $content;
-        if ($property == 'og:description') $details['description'] = $content;
+        if ($property == 'og:description') $og_description = $content;
         if ($property == 'og:image') $details['thumbnail_url'] = $content;
         if ($property == 'article:published_time') $details['publish_date'] = $content;
+        if ($name == 'description') $std_description = $content;
+        if ($name == 'twitter:description') $twitter_description = $content;
     }
+    // Not every site uses Open Graph tags; fall back to the standard SEO
+    // description meta tag, then a Twitter card, whichever is present.
+    $details['description'] = $og_description ?: $std_description ?: $twitter_description;
     
     // 2. Try <title> tag if meta failed (LAST ATTEMPT FOR TITLE)
     if (empty($details['title'])) {
