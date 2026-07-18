@@ -1,0 +1,14 @@
+RewriteEngine On
+
+# 1. Handle Episode Pages (New)
+# Maps /episode/success-bin-numri -> episode.php?slug=success-bin-numri
+RewriteRule ^episode/([^/]+)/?$ episode.php?slug=$1 [L,QSA]
+
+# 2. Handle Series Pages
+RewriteRule ^series/([^/]+)/?$ series.php?slug=$1 [L,QSA]
+
+# 3. Handle Category Pages
+RewriteRule ^category/([^/]+)/?$ category.php?tag=$1 [L,QSA]
+
+# 4. Handle Election Campaign Page
+RewriteRule ^election/?$ campaign.php [L,QSA]
