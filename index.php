@@ -71,6 +71,7 @@ try {
 // --- Fetch 1 Latest Episode per Category for the Top Scroll ---
 $latest_per_category = [];
 foreach ($tags_list as $tag) {
+    if ($tag['name'] === 'elezzjoni2026') continue; // archived, exclude from freshest scroll
     try {
         $l_stmt = $pdo->prepare("
             SELECT 
