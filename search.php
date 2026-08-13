@@ -1,12 +1,15 @@
 <?php
-// --- FORCE ERROR DISPLAY ---
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 
 require_once 'config_loader.php';
 
 $q = trim($_GET['q'] ?? '');
+$result_type = $_GET['type'] ?? 'all';
+if (!in_array($result_type, ['all', 'series', 'episodes'], true)) {
+    $result_type = 'all';
+}
 $page_title = "Fittex: " . htmlspecialchars($q) . " - il-hub.com";
 
 // Helper functions (same as index/series)
@@ -44,7 +47,7 @@ if (!empty($q)) {
             ORDER BY title ASC LIMIT 6
         ");
         $stmt->execute(['q1' => $search_term, 'q2' => $search_term]);
-        $series_results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $series_results = $result_type === 'episodes' ? [] : $stmt->fetchAll(PDO::FETCH_ASSOC);
 
         // 2. Search Episodes (Fix: Use unique placeholders :q1 and :q2)
         $stmt = $pdo->prepare("
@@ -55,7 +58,7 @@ if (!empty($q)) {
             ORDER BY ep.publish_date DESC LIMIT 12
         ");
         $stmt->execute(['q1' => $search_term, 'q2' => $search_term]);
-        $episode_results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $episode_results = $result_type === 'series' ? [] : $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     } catch (PDOException $e) {
         // Handle error silently or log
@@ -83,6 +86,14 @@ include 'header_frontend.php';
                 Fittex
             </button>
         </form>
+        <div class="flex flex-wrap justify-center gap-2 mt-5" aria-label="Iffiltra r-riżultati">
+            <?php foreach (['all' => 'Kollha', 'series' => 'Programmi', 'episodes' => 'Episodji'] as $type_value => $type_label): ?>
+                <a href="?q=<?php echo urlencode($q); ?>&type=<?php echo $type_value; ?>"
+                   class="px-4 py-2 rounded-full text-sm font-semibold border transition-colors <?php echo $result_type === $type_value ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-orange-500/60 hover:text-white'; ?>">
+                    <?php echo $type_label; ?>
+                </a>
+            <?php endforeach; ?>
+        </div>
     </div>
 
     <?php if (empty($q)): ?>
@@ -138,7 +149,7 @@ include 'header_frontend.php';
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <?php foreach ($episode_results as $item): ?>
                         <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col hover:shadow-xl transition-shadow duration-300 border border-gray-700">
-                            <a href="<?php echo htmlspecialchars($item['media_url']); ?>" target="_blank" class="block relative group/image h-48 overflow-hidden">
+                            <a href="<?php echo getEpisodeUrl($item['slug'] ?? '', $item['id']); ?>" class="block relative group/image h-48 overflow-hidden">
                                 <img loading="lazy" class="h-full w-full object-cover transform group-hover/image:scale-105 transition-transform duration-500" src="<?php echo htmlspecialchars($item['thumbnail_url']); ?>" alt="Cover">
                                 <div class="absolute inset-0 bg-black bg-opacity-0 group-hover/image:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
                                     <svg class="w-12 h-12 text-white opacity-0 group-hover/image:opacity-100 transform scale-75 group-hover/image:scale-100 transition-all duration-300" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
@@ -149,13 +160,13 @@ include 'header_frontend.php';
                                     <?php echo htmlspecialchars($item['series_title']); ?>
                                 </a>
                                 <h4 class="text-lg font-bold text-white mb-2 line-clamp-2 hover:text-orange-300 transition-colors">
-                                    <a href="<?php echo htmlspecialchars($item['media_url']); ?>" target="_blank"><?php echo htmlspecialchars($item['title']); ?></a>
+                                    <a href="<?php echo getEpisodeUrl($item['slug'] ?? '', $item['id']); ?>"><?php echo htmlspecialchars($item['title']); ?></a>
                                 </h4>
                                 <p class="text-gray-400 text-sm mb-4 flex-grow line-clamp-3">
                                     <?php echo mb_strimwidth(htmlspecialchars($item['description']), 0, 100, "..."); ?>
                                 </p>
-                                <a href="<?php echo htmlspecialchars($item['media_url']); ?>" target="_blank" class="mt-auto w-full block bg-gray-700 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg text-center transition-colors text-sm">
-                                    Ara Issa <svg class="w-4 h-4 ml-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                                <a href="<?php echo getEpisodeUrl($item['slug'] ?? '', $item['id']); ?>" class="mt-auto w-full block bg-gray-700 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg text-center transition-colors text-sm">
+                                    Ara d-Dettalji <svg class="w-4 h-4 ml-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m0 0H3"></path></svg>
                                 </a>
                             </div>
                         </div>

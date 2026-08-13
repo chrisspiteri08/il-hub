@@ -1,7 +1,7 @@
 <?php
-// --- FORCE ERROR DISPLAY ---
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+// Log production errors without exposing technical details to visitors.
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 
 // 1. Include the database connection logic
@@ -120,37 +120,39 @@ $page_title = "il-hub.com - Maltese Podcasts & Discussions | One Hub for Malta's
 include 'header_frontend.php';
 ?>
 
-    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
 
         <!-- Hero Section -->
-        <section class="text-center mb-16 relative">
-            <div class="absolute inset-0 flex justify-center items-center opacity-20 pointer-events-none">
-                 <div class="w-96 h-96 bg-orange-600 rounded-full filter blur-[100px]"></div>
-            </div>
-            <div class="relative z-10">
-                <h1 class="hidden">Maltese Podcasts in Malta | il-hub.com</h1>
-                <h2 class="text-5xl md:text-7xl font-extrabold text-white mb-6 tracking-tight">
-                    Sib xi ħaġa <span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">tgħodd għalik.</span>
-                </h2>
-                <p class="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto leading-relaxed mb-8">
-                    Sib l-aħjar <b>podcasts f'Malta</b>, dibattiti u diskussjonijiet minn madwar il-gżejjer.
+        <section class="relative overflow-hidden rounded-[2rem] mb-16 border border-white/10 hub-surface px-6 py-12 sm:px-12 sm:py-16 lg:px-16 lg:py-20">
+            <div class="absolute -top-32 -right-24 w-96 h-96 bg-orange-600/25 rounded-full blur-[110px] pointer-events-none"></div>
+            <div class="absolute -bottom-40 left-1/3 w-80 h-80 bg-red-600/10 rounded-full blur-[110px] pointer-events-none"></div>
+            <div class="relative z-10 max-w-4xl">
+                <div class="inline-flex items-center gap-2 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[.18em] text-orange-300 mb-6">
+                    <span class="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span> Il-media Maltija, f'post wieħed
+                </div>
+                <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black text-white mb-6 tracking-[-.045em] leading-[1.02]">
+                    Isma'. Ara. Skopri.<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-300 via-orange-500 to-red-500">Kollox Malti.</span>
+                </h1>
+                <p class="text-lg sm:text-xl text-gray-300 max-w-2xl leading-relaxed mb-8">
+                    Podcasts, diskussjonijiet u programmi minn madwar il-gżejjer—organizzati biex issib dak li jinteressak malajr.
                 </p>
-                <a href="suggest.php" class="inline-flex items-center px-6 py-3 border border-orange-500 text-base font-medium rounded-full text-orange-400 bg-transparent hover:bg-orange-500 hover:text-white transition-all duration-300 shadow-lg hover:shadow-orange-500/30">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Jonqosna xi programm? Kellimna!
-                </a>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <a href="/search.php" class="inline-flex justify-center items-center px-6 py-3.5 rounded-xl text-white bg-orange-600 hover:bg-orange-500 font-bold transition-all shadow-xl shadow-orange-950/30">Fittex fil-Hub &rarr;</a>
+                    <a href="#latest" class="inline-flex justify-center items-center px-6 py-3.5 rounded-xl text-white border border-white/10 bg-white/5 hover:bg-white/10 font-semibold transition-all">Ara l-aktar friski</a>
+                </div>
             </div>
         </section>
 
         <!-- LATEST UPDATES SCROLL -->
         <?php if (!empty($latest_per_category)): ?>
-        <section class="mb-20">
-            <div class="flex items-center mb-6">
-                <h3 class="text-2xl font-bold text-white">L-iktar Friski</h3>
+        <section id="latest" class="mb-20 scroll-mt-36">
+            <div class="flex items-end justify-between mb-7">
+                <div><p class="text-xs uppercase tracking-[.2em] font-bold text-orange-400 mb-2">Aġġornat regolarment</p><h2 class="text-3xl sm:text-4xl font-black tracking-tight text-white">L-iktar friski</h2></div>
+                <a href="/search.php" class="text-sm font-semibold text-gray-400 hover:text-orange-400">Esplora kollox &rarr;</a>
             </div>
             <div class="flex overflow-x-auto pb-6 -mx-4 px-4 space-x-4 snap-x">
                 <?php foreach ($latest_per_category as $item): ?>
-                    <div class="flex-none w-72 snap-center bg-gray-800 rounded-xl shadow-lg overflow-hidden border border-gray-700 hover:border-orange-500/50 transition-all duration-300 group">
+                    <article class="flex-none w-72 snap-center hub-card rounded-2xl overflow-hidden border transition-all duration-300 group">
                         <a href="<?php echo getEpisodeUrl($item['episode_slug'], $item['id']); ?>" class="block relative h-40 overflow-hidden">
                             <img loading="eager" fetchpriority="high" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500" 
                                  src="<?php echo htmlspecialchars(getOptimizedImage($item['thumbnail_url'])); ?>" alt="Thumbnail" width="288" height="160">
@@ -175,7 +177,7 @@ include 'header_frontend.php';
                                 <span><?php echo date('M d', strtotime($item['publish_date'])); ?></span>
                             </div>
                         </div>
-                    </div>
+                    </article>
                 <?php endforeach; ?>
             </div>
         </section>
@@ -188,10 +190,10 @@ include 'header_frontend.php';
             ?>
             <section id="<?php echo htmlspecialchars($tag['name']); ?>" class="mb-16 content-visibility-auto">
                 
-                <div class="flex justify-between items-end mb-8 border-b border-gray-800 pb-4">
+                <div class="flex justify-between items-end mb-7">
                     <a href="<?php echo getCategoryUrl($tag['name']); ?>" class="group inline-block">
-                        <h3 class="text-3xl font-bold text-white capitalize flex items-center group-hover:text-orange-400 transition-colors">
-                            <span class="w-2 h-8 bg-orange-500 rounded-full mr-4"></span>
+                        <h3 class="text-2xl sm:text-3xl font-black text-white capitalize flex items-center group-hover:text-orange-400 transition-colors">
+                            <span class="w-1.5 h-7 bg-orange-500 rounded-full mr-3"></span>
                             <?php echo translateTag($tag['name']); ?> 
                         </h3>
                     </a>
@@ -213,7 +215,7 @@ include 'header_frontend.php';
                             $is_new = !$is_coming_soon && ($pub_timestamp > ($now - 86400));
                         ?>
 
-                        <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden flex flex-col hover:shadow-xl transition-shadow duration-300 border border-gray-700">
+                        <article class="hub-card rounded-2xl overflow-hidden flex flex-col transition-all duration-300 border">
                             <a href="<?php echo getEpisodeUrl($item['episode_slug'], $item['id']); ?>" class="block relative group/image h-48 overflow-hidden">
                                 <img loading="lazy" class="h-full w-full object-cover transform group-hover:scale-105 transition-transform duration-500" 
                                      src="<?php echo htmlspecialchars(getOptimizedImage($item['thumbnail_url'])); ?>" alt="Cover art" width="400" height="225">
@@ -228,7 +230,7 @@ include 'header_frontend.php';
                                     <div class="absolute top-3 right-3 bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-md uppercase tracking-wider shadow-lg z-20 border border-green-500 animate-pulse">Ġdid</div>
                                 <?php endif; ?>
                             </a>
-                            <div class="p-6 flex flex-col flex-grow">
+                            <div class="p-5 flex flex-col flex-grow">
                                 <a href="<?php echo getSeriesUrl($item['series_slug'] ?? '', $item['series_id'] ?? 0); ?>" class="text-xs font-bold text-orange-400 mb-2 uppercase tracking-wide hover:underline">
                                     <?php echo htmlspecialchars($item['series_title']); ?>
                                 </a>
@@ -247,11 +249,11 @@ include 'header_frontend.php';
                                 <p class="text-gray-400 text-sm mb-4 flex-grow line-clamp-3">
                                     <?php echo mb_strimwidth(htmlspecialchars($item['description']), 0, 100, "..."); ?>
                                 </p>
-                                <a href="<?php echo getEpisodeUrl($item['episode_slug'], $item['id']); ?>" class="mt-auto w-full block bg-gray-700 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg text-center transition-colors text-sm">
+                                <a href="<?php echo getEpisodeUrl($item['episode_slug'], $item['id']); ?>" class="mt-auto w-full block bg-white/5 hover:bg-orange-600 border border-white/5 text-white font-semibold py-2.5 px-4 rounded-xl text-center transition-colors text-sm">
                                     Ara l-Episodju <svg class="w-4 h-4 ml-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                                 </a>
                             </div>
-                        </div>
+                        </article>
                         <?php endforeach; ?>
                     <?php endif; ?>
 

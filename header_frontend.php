@@ -44,6 +44,17 @@ if (!function_exists('getCategoryUrl')) {
     }
 }
 
+// Keep visitors inside il-hub for episode details. Unsupported media sources
+// can still be opened from the episode page itself.
+if (!function_exists('getEpisodeUrl')) {
+    function getEpisodeUrl($slug, $id) {
+        if (!empty($slug)) {
+            return "/episode/" . rawurlencode($slug);
+        }
+        return "/episode.php?id=" . (int) $id;
+    }
+}
+
 // --- Image Proxy Helper (DISABLED) ---
 if (!function_exists('getOptimizedImage')) {
     function getOptimizedImage($url) {
@@ -133,7 +144,7 @@ if (!isset($series_list)) {
     <?php endif; ?>
     
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #111827; color: white; }
+        body { font-family: 'Inter', sans-serif; background: #090d16; color: white; }
         a { color: #fb923c; text-decoration: none; }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #111827; }
@@ -144,22 +155,25 @@ if (!isset($series_list)) {
         .sub-nav::-webkit-scrollbar { height: 4px; }
         .sub-nav::-webkit-scrollbar-thumb { background: #fb923c; border-radius: 4px; }
         .sub-nav::-webkit-scrollbar-track { background: transparent; }
-        padding-bottom: env(safe-area-inset-bottom);
+        body { padding-bottom: env(safe-area-inset-bottom); }
         
         /* Content Visibility Optimization */
         .content-visibility-auto {
             content-visibility: auto;
             contain-intrinsic-size: 1px 1000px; /* Estimate height */
         }
+        .hub-surface { background: linear-gradient(145deg, rgba(31,41,55,.9), rgba(17,24,39,.72)); }
+        .hub-card { background: rgba(22,29,43,.88); border-color: rgba(75,85,99,.55); }
+        .hub-card:hover { transform: translateY(-4px); border-color: rgba(249,115,22,.62); box-shadow: 0 22px 55px rgba(0,0,0,.28); }
     </style>
 </head>
-<body class="antialiased min-h-screen flex flex-col bg-gray-900 text-gray-200">
+<body class="antialiased min-h-screen flex flex-col text-gray-200">
 
-    <header class="bg-gray-900/90 backdrop-blur-md sticky top-0 z-50 border-b border-gray-800 shadow-sm">
+    <header class="bg-[#090d16]/90 backdrop-blur-xl sticky top-0 z-50 border-b border-white/5">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-20">
+            <div class="flex justify-between items-center h-16 sm:h-20">
                 <div class="flex-shrink-0">
-                    <a href="/index.php" class="text-3xl font-extrabold tracking-tight text-white">
+                    <a href="/index.php" class="text-2xl sm:text-3xl font-black tracking-tight text-white">
                         <span class="text-orange-500">il-hub</span>.com
                     </a>
                 </div>
@@ -168,14 +182,14 @@ if (!isset($series_list)) {
         </div>
     </header>
 
-    <nav class="bg-gray-800 border-b border-gray-700 shadow-inner sticky top-20 z-40">
+    <nav class="bg-[#0d1320]/92 backdrop-blur-xl border-b border-white/5 sticky top-16 sm:top-20 z-40">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center py-3">
+            <div class="flex justify-between items-center gap-3 py-3">
                 
                 <!-- Left Side: Menus -->
-                <div class="flex space-x-6">
+                <div class="flex gap-2 sm:gap-4 min-w-0">
                     <div class="relative">
-                        <button onclick="toggleDropdown('categoryMenu')" class="font-semibold text-white transition-colors flex items-center bg-orange-600 hover:bg-orange-700 px-4 py-2 rounded-lg shadow-md">
+                        <button onclick="toggleDropdown('categoryMenu')" aria-expanded="false" aria-controls="categoryMenu" class="font-semibold text-white transition-colors flex items-center bg-orange-600 hover:bg-orange-700 px-3 sm:px-4 py-2 rounded-lg shadow-md">
                             Kategoriji
                             <svg class="w-4 h-4 ml-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
@@ -191,7 +205,7 @@ if (!isset($series_list)) {
                     </div>
                     
                     <div class="relative">
-                        <button onclick="toggleDropdown('seriesMenu')" class="font-semibold text-white transition-colors flex items-center bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg shadow-md">
+                        <button onclick="toggleDropdown('seriesMenu')" aria-expanded="false" aria-controls="seriesMenu" class="font-semibold text-white transition-colors flex items-center bg-gray-700 hover:bg-gray-600 px-3 sm:px-4 py-2 rounded-lg shadow-md">
                             Serje
                             <svg class="w-4 h-4 ml-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
@@ -230,8 +244,12 @@ if (!isset($series_list)) {
             const menu = document.getElementById(menuId);
             if (menuId === id) {
                 menu.classList.toggle('hidden');
+                const button = document.querySelector('[aria-controls="' + menuId + '"]');
+                if (button) button.setAttribute('aria-expanded', menu.classList.contains('hidden') ? 'false' : 'true');
             } else {
                 menu.classList.add('hidden');
+                const button = document.querySelector('[aria-controls="' + menuId + '"]');
+                if (button) button.setAttribute('aria-expanded', 'false');
             }
         });
     }

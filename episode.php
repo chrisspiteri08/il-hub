@@ -44,7 +44,25 @@ if (!$episode) { header("Location: /index.php"); exit; }
 
 // Set dynamic SEO data for the header
 $page_title = $episode['title'] . " | il-hub.com";
-$meta_description = $episode['description'] ?? '';
+$page_description = !empty(trim($episode['description'] ?? ''))
+    ? mb_strimwidth(strip_tags($episode['description']), 0, 160, '...')
+    : "Ara dan l-episodju fuq il-hub.com.";
+$page_image = $episode['thumbnail_url'] ?? null;
+
+// Related episodes from the same series, with the newest first.
+$related_stmt = $pdo->prepare("
+    SELECT id, title, slug, thumbnail_url, media_url, publish_date
+    FROM episodes
+    WHERE series_id = :series_id AND id != :episode_id
+      AND title NOT IN ('Deleted video', 'Private video')
+    ORDER BY publish_date DESC
+    LIMIT 4
+");
+$related_stmt->execute([
+    'series_id' => $episode['series_id'],
+    'episode_id' => $episode['id'],
+]);
+$related_episodes = $related_stmt->fetchAll(PDO::FETCH_ASSOC);
 
 include 'header_frontend.php';
 
@@ -78,10 +96,13 @@ function getYoutubeId($url) {
                 </div>
 
             <?php else: ?>
-                <!-- Processing Placeholder -->
-                <div class="flex flex-col items-center justify-center h-full text-gray-500">
+                <!-- Sources which cannot be embedded still get a useful detail page. -->
+                <div class="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-800 px-6 text-center">
                     <svg class="w-16 h-16 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 00-2 2z"></path></svg>
-                    <p class="italic">Il-video qed jiġi pproċessat...</p>
+                    <p class="mb-5 font-semibold text-lg text-white">Dan l-episodju jinsab fuq sit ieħor</p>
+                    <a href="<?php echo htmlspecialchars($episode['media_url']); ?>" target="_blank" rel="noopener noreferrer" class="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg">
+                        Iftaħ fis-Sors
+                    </a>
                 </div>
             <?php endif; ?>
         </div>
@@ -119,6 +140,31 @@ function getYoutubeId($url) {
     <div class="bg-gray-800 p-8 rounded-3xl border border-gray-700 shadow-lg max-w-3xl">
         <p class="text-gray-500 italic">Deskrizzjoni mhux disponibbli għal dan l-episodju.</p>
     </div>
+    <?php endif; ?>
+
+    <?php if (!empty($related_episodes)): ?>
+    <section class="mt-14" aria-labelledby="related-heading">
+        <div class="flex items-center justify-between mb-6">
+            <h2 id="related-heading" class="text-2xl font-bold text-white flex items-center">
+                <span class="w-2 h-8 bg-orange-500 rounded-full mr-4"></span>
+                Aktar minn <?php echo htmlspecialchars($episode['series_title']); ?>
+            </h2>
+            <a href="<?php echo getSeriesUrl($episode['series_slug'] ?? '', $episode['series_id']); ?>" class="text-sm font-semibold text-orange-400 hover:text-orange-300">Ara kollha &rarr;</a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <?php foreach ($related_episodes as $related): ?>
+                <a href="<?php echo getEpisodeUrl($related['slug'] ?? '', $related['id']); ?>" class="group bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 hover:border-orange-500/60 transition-all">
+                    <div class="aspect-video bg-gray-900 overflow-hidden">
+                        <img loading="lazy" src="<?php echo htmlspecialchars($related['thumbnail_url']); ?>" alt="" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-bold text-white line-clamp-2 group-hover:text-orange-400 transition-colors"><?php echo htmlspecialchars($related['title']); ?></h3>
+                        <?php if (!empty($related['publish_date'])): ?><p class="text-xs text-gray-500 mt-2"><?php echo date('d M Y', strtotime($related['publish_date'])); ?></p><?php endif; ?>
+                    </div>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </section>
     <?php endif; ?>
 </main>
 

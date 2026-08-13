@@ -1,4 +1,5 @@
 /db_credentials.php
 /webhook_secret.php
+/demo.sqlite
 *.log
 /.well-known/
