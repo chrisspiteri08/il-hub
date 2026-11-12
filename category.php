@@ -112,6 +112,7 @@ try {
 
 // 5. Include Header
 $page_title = translateTag($tag_name) . " - il-hub.com";
+$canonical_path = '/category/' . rawurlencode($tag_name);
 include 'header_frontend.php';
 ?>
 

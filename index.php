@@ -117,6 +117,7 @@ if (!function_exists('getSeriesUrl')) {
 }
 
 $page_title = "il-hub.com - Maltese Podcasts & Discussions | One Hub for Malta's Media";
+$canonical_path = '/';
 include 'header_frontend.php';
 ?>
 

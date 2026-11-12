@@ -12,8 +12,9 @@ if (!isset($page_description)) {
 }
 
 // --- Dynamic Social Image (Open Graph) ---
-$og_image = isset($page_image) && !empty($page_image) ? $page_image : "https://il-hub.com/assets/social_share.jpg"; 
-$current_url = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+$og_image = isset($page_image) && !empty($page_image) ? $page_image : "https://www.il-hub.com/assets/social_share.jpg";
+$canonical_path = $canonical_path ?? (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
+$current_url = 'https://www.il-hub.com' . ($canonical_path[0] === '/' ? $canonical_path : '/' . $canonical_path);
 
 // Helper for translations
 if (!function_exists('translateTag')) {

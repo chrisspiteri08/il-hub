@@ -151,6 +151,7 @@ try {
 
 // 7. Include Header
 $page_title = htmlspecialchars($series_title) . " - il-hub.com";
+$canonical_path = '/series/' . rawurlencode($series['slug']);
 include 'header_frontend.php';
 ?>
 

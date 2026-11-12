@@ -51,6 +51,7 @@ $page_description = !empty(trim($episode['description'] ?? ''))
     ? mb_strimwidth(strip_tags($episode['description']), 0, 160, '...')
     : "Ara dan l-episodju fuq il-hub.com.";
 $page_image = $episode['thumbnail_url'] ?? null;
+$canonical_path = '/episode/' . rawurlencode($episode['slug']);
 
 // Related episodes from the same series, with the newest first.
 $related_stmt = $pdo->prepare("
