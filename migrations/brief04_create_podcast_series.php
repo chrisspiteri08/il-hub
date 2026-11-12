@@ -14,7 +14,7 @@ if (!$intervalColumn) {
 }
 
 $shows = [
-    ['Negozju bla Fruntieri','PLnIJiL_SX872Qp56M9R1_2ELE4fjQA8qJ','business','Intervisti dwar in-negozju (Newsbook/RTK)'],
+    ['Negozju bla Fruntieri','PLnIJiL_SX872Qp56M9R1_2ELE4fjQA8qJ','podcast','Intervisti dwar in-negozju (Newsbook/RTK)'],
     ['Kre-attivi','PLWUrScBsTVgU','lifestyle',"Intervisti ma' nies kreattivi"],
     ['By The Way (BTW)','PLnIJiL_SX871Fb2h5008b6n_7FX5gqDVe','podcast',"Programm ta' intervisti fuq RTK103"],
     ['Minn Għajn il-Fotografu','PLaCHDoGbcl4c','lifestyle',"Intervisti ma' fotografi Maltin"],
