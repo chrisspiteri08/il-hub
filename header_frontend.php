@@ -141,12 +141,13 @@ if (!isset($series_list)) {
           extend: {
             colors: {
               orange: {
-                50: '#FFFBEA', 100: '#FFF5C7', 200: '#FFEE99', 300: '#FFE775',
-                400: '#FFDE5B', 500: '#FFDE5B', 600: '#F5CF3A', 700: '#E0B91F',
-                800: '#B8960F', 900: '#8A700B', 950: '#4D3E05'
+                50: '#FEF2F2', 100: '#FDE3E3', 200: '#FBC4C4', 300: '#F7797A',
+                400: '#F45859', 500: '#D93B3B', 600: '#D93B3B', 700: '#C92E2E',
+                800: '#A82424', 900: '#7F1D1D', 950: '#450A0A'
               },
               brand: {
-                yellow: '#FFDE5B', coral: '#F45859', charcoal: '#21201E', black: '#000000'
+                yellow: '#FFDE5B', coral: '#F45859', red: '#D93B3B', 'red-dark': '#C92E2E',
+                charcoal: '#21201E', black: '#000000'
               }
             }
           }
