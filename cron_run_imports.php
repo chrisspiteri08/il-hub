@@ -30,10 +30,14 @@ if (!isset($_GET['key']) || $_GET['key'] !== $secret_key) {
 // --- NEW: Fetch the 'music' tag ID dynamically ---
 // We do this once at the start so we know which ID to look for in the loop
 $music_tag_id = null;
+$podcast_tag_id = null;
 try {
     $m_stmt = $pdo->prepare("SELECT id FROM tags WHERE name = 'music' LIMIT 1");
     $m_stmt->execute();
     $music_tag_id = $m_stmt->fetchColumn();
+    $p_stmt = $pdo->prepare("SELECT id FROM tags WHERE name = 'Diskussjonijiet u Podcasts' LIMIT 1");
+    $p_stmt->execute();
+    $podcast_tag_id = $p_stmt->fetchColumn();
 } catch (Exception $e) {
     // If this fails, we just won't have special music handling
 }
@@ -317,14 +321,18 @@ try {
         $min_duration_seconds = 600;
         $is_music_job = false;
 
-        // Check if this job has the 'music' tag attached
+        // Music and podcast jobs can contain valid short-form episodes.
         if ($music_tag_id && in_array($music_tag_id, $tag_ids_array)) {
             $is_music_job = true;
-            $min_duration_seconds = 0; // Disable limit for music
+            $min_duration_seconds = 0;
+        } elseif ($podcast_tag_id && in_array($podcast_tag_id, $tag_ids_array)) {
+            $min_duration_seconds = 0;
         }
 
         echo "\n--- Processing Job #$job_id for '$series_title' (Type: $job_type) ---\n";
-        echo "Tags: " . implode(', ', $tag_ids_array) . ($is_music_job ? " [Music Detected - No Duration Limit, No FB Post]" : " [Limit: 10 mins]") . "\n";
+        $duration_label = $min_duration_seconds === 0 ? ' [No Duration Limit]' : ' [Limit: 10 mins]';
+        if ($is_music_job) $duration_label = ' [Music Detected - No Duration Limit, No FB Post]';
+        echo "Tags: " . implode(', ', $tag_ids_array) . $duration_label . "\n";
         
         $pdo->beginTransaction();
         
