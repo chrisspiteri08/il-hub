@@ -12,7 +12,8 @@ if (!isset($page_description)) {
 }
 
 // --- Dynamic Social Image (Open Graph) ---
-$og_image = isset($page_image) && !empty($page_image) ? $page_image : "https://www.il-hub.com/assets/social_share.jpg";
+$uses_default_og_image = !isset($page_image) || empty($page_image);
+$og_image = $uses_default_og_image ? "https://www.il-hub.com/assets/social_share.jpg" : $page_image;
 $canonical_path = $canonical_path ?? (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
 $current_url = 'https://www.il-hub.com' . ($canonical_path[0] === '/' ? $canonical_path : '/' . $canonical_path);
 
@@ -102,16 +103,17 @@ if (!isset($series_list)) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://i.ytimg.com"> 
     <link rel="preconnect" href="https://tvmi.mt">
-    <link rel="preconnect" href="https://placehold.co">
     <link rel="preconnect" href="https://cdn.tailwindcss.com">
 
     <!-- PWA / Mobile App Settings -->
-    <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#111827">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="il-hub">
-    <link rel="apple-touch-icon" href="https://placehold.co/192x192/ea580c/ffffff?text=HUB">
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
@@ -119,6 +121,10 @@ if (!isset($series_list)) {
     <meta property="og:title" content="<?php echo htmlspecialchars($page_title); ?>" />
     <meta property="og:description" content="<?php echo htmlspecialchars($page_description); ?>" />
     <meta property="og:image" content="<?php echo htmlspecialchars($og_image); ?>" />
+    <?php if ($uses_default_og_image): ?>
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <?php endif; ?>
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
@@ -196,8 +202,8 @@ if (!isset($series_list)) {
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16 sm:h-20">
                 <div class="flex-shrink-0">
-                    <a href="/index.php" class="text-2xl sm:text-3xl font-black tracking-tight text-white">
-                        <span class="text-orange-500">il-hub</span>.com
+                    <a href="/" aria-label="il-Hub home" class="block">
+                        <img src="/assets/logo-header.png" alt="il-Hub" width="438" height="96" class="h-8 sm:h-10 w-auto">
                     </a>
                 </div>
                 <div class="sm:hidden"></div>
