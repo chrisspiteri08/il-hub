@@ -1,5 +1,9 @@
 RewriteEngine On
 
+# RSS feed and legacy feed URLs
+RewriteRule ^(?:rss|feed)/?$ /feed.xml [R=301,L]
+RewriteRule ^feed\.xml$ feed.php [L]
+
 # Public XML sitemap
 RewriteRule ^sitemap\.xml$ sitemap.php [L]
 

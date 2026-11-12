@@ -94,6 +94,7 @@ if (!isset($series_list)) {
     <!-- SEO Meta Tags -->
     <meta name="description" content="<?php echo htmlspecialchars($page_description); ?>">
     <link rel="canonical" href="<?php echo htmlspecialchars($current_url); ?>" />
+    <link rel="alternate" type="application/rss+xml" title="il-hub.com" href="https://www.il-hub.com/feed.xml">
 
     <!-- PERFORMANCE: Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
