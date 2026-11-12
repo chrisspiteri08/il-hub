@@ -60,7 +60,7 @@ if (!isset($tags_list) && isset($pdo)) {
                 &copy; <?php echo date('Y'); ?> il-hub.com - Id-Drittijiet Kollha Riservati.
             </p>
             <p class="text-gray-600 text-xs mt-2 md:mt-0 flex items-center">
-                Mibni bi <span class="text-red-500 mx-1">❤</span> għall-komunità Maltija.
+                Il-media Maltija, f'post wieħed.
             </p>
         </div>
     </div>
