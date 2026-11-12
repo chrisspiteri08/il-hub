@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /admin.php
+Disallow: /automations.php
+Disallow: /importer.php
+Disallow: /add_from_url.php
+Disallow: /suggest.php
+
+Sitemap: https://www.il-hub.com/sitemap.xml
