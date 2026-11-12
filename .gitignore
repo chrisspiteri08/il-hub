@@ -1,5 +1,8 @@
 /db_credentials.php
 /webhook_secret.php
 /demo.sqlite
+/cache/feed.xml
+/cache/sitemap.xml
+/cache/*.xml.tmp.*
 *.log
 /.well-known/
