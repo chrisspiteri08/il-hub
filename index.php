@@ -138,7 +138,7 @@ include 'header_frontend.php';
                     Podcasts, diskussjonijiet u programmi minn madwar il-gżejjer—organizzati biex issib dak li jinteressak malajr.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-3">
-                    <a href="/search.php" class="inline-flex justify-center items-center px-6 py-3.5 rounded-xl text-black bg-orange-600 hover:bg-orange-500 font-bold transition-all shadow-xl shadow-orange-950/30">Fittex fil-Hub &rarr;</a>
+                    <a href="/search.php" class="inline-flex justify-center items-center px-6 py-3.5 rounded-xl text-white bg-orange-600 hover:bg-orange-500 font-bold transition-all shadow-xl shadow-orange-950/30">Fittex fil-Hub &rarr;</a>
                     <a href="#latest" class="inline-flex justify-center items-center px-6 py-3.5 rounded-xl text-white border border-white/10 bg-white/5 hover:bg-white/10 font-semibold transition-all">Ara l-aktar friski</a>
                 </div>
             </div>
@@ -250,7 +250,7 @@ include 'header_frontend.php';
                                 <p class="text-gray-400 text-sm mb-4 flex-grow line-clamp-3">
                                     <?php echo mb_strimwidth(htmlspecialchars($item['description']), 0, 100, "..."); ?>
                                 </p>
-                                <a href="<?php echo getEpisodeUrl($item['episode_slug'], $item['id']); ?>" class="mt-auto w-full block bg-white/5 hover:bg-orange-600 border border-white/5 text-white hover:text-black font-semibold py-2.5 px-4 rounded-xl text-center transition-colors text-sm">
+                                <a href="<?php echo getEpisodeUrl($item['episode_slug'], $item['id']); ?>" class="mt-auto w-full block bg-white/5 hover:bg-orange-600 border border-white/5 text-white hover:text-white font-semibold py-2.5 px-4 rounded-xl text-center transition-colors text-sm">
                                     Ara l-Episodju <svg class="w-4 h-4 ml-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                                 </a>
                             </div>

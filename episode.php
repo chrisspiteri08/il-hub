@@ -99,7 +99,7 @@ function getYoutubeId($url) {
                 <div class="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-800">
                     <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     <p class="mb-5 font-semibold text-lg text-white">Dan l-episodju jinsab fuq TVMi</p>
-                    <a href="<?php echo htmlspecialchars($episode['media_url']); ?>" target="_blank" class="bg-orange-600 hover:bg-orange-500 text-black px-8 py-3 rounded-full font-bold transition-all shadow-lg">
+                    <a href="<?php echo htmlspecialchars($episode['media_url']); ?>" target="_blank" class="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg">
                         Ara fuq TVMi
                     </a>
                 </div>
@@ -109,7 +109,7 @@ function getYoutubeId($url) {
                 <div class="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-800 px-6 text-center">
                     <svg class="w-16 h-16 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 00-2 2z"></path></svg>
                     <p class="mb-5 font-semibold text-lg text-white">Dan l-episodju jinsab fuq sit ieħor</p>
-                    <a href="<?php echo htmlspecialchars($episode['media_url']); ?>" target="_blank" rel="noopener noreferrer" class="bg-orange-600 hover:bg-orange-500 text-black px-8 py-3 rounded-full font-bold transition-all shadow-lg">
+                    <a href="<?php echo htmlspecialchars($episode['media_url']); ?>" target="_blank" rel="noopener noreferrer" class="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg">
                         Iftaħ fis-Sors
                     </a>
                 </div>
@@ -118,7 +118,7 @@ function getYoutubeId($url) {
         
         <div class="p-6 md:p-8 border-t border-gray-800">
             <div class="flex flex-wrap items-center gap-3 mb-4">
-                <a href="/series/<?php echo $episode['series_slug']; ?>" class="bg-orange-500/10 text-orange-500 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border border-orange-500/20 hover:bg-orange-500 hover:text-black transition-all">
+                <a href="/series/<?php echo $episode['series_slug']; ?>" class="bg-orange-500/10 text-orange-500 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest border border-orange-500/20 hover:bg-orange-500 hover:text-white transition-all">
                     <?php echo htmlspecialchars($episode['series_title']); ?>
                 </a>
                 <span class="text-gray-500 text-sm font-medium">

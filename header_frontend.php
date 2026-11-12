@@ -219,9 +219,9 @@ if (!isset($series_list)) {
                 <!-- Left Side: Menus -->
                 <div class="flex gap-2 sm:gap-4 min-w-0">
                     <div class="relative">
-                        <button onclick="toggleDropdown('categoryMenu')" aria-expanded="false" aria-controls="categoryMenu" class="font-semibold text-black transition-colors flex items-center bg-orange-600 hover:bg-orange-700 px-3 sm:px-4 py-2 rounded-lg shadow-md">
+                        <button onclick="toggleDropdown('categoryMenu')" aria-expanded="false" aria-controls="categoryMenu" class="font-semibold text-white transition-colors flex items-center bg-orange-600 hover:bg-orange-700 px-3 sm:px-4 py-2 rounded-lg shadow-md">
                             Kategoriji
-                            <svg class="w-4 h-4 ml-2 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            <svg class="w-4 h-4 ml-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
                         <div id="categoryMenu" class="absolute left-0 top-full mt-2 w-56 bg-gray-900 rounded-xl shadow-2xl py-2 z-50 hidden border border-gray-700">
                             <?php if (!empty($tags_list)): ?>

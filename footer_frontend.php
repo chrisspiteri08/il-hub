@@ -20,7 +20,7 @@ if (!isset($tags_list) && isset($pdo)) {
                     Id-destinazzjoni numru wieħed għall-podcasts, diskussjonijiet u programmi Maltin. Aħna ngħaqqdu l-aħjar kontenut f'post wieħed għalik.
                 </p>
                 <div class="pt-2">
-                    <a href="/suggest.php" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-black bg-orange-600 hover:bg-orange-700 transition-colors shadow-lg shadow-orange-900/20">
+                    <a href="/suggest.php" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-orange-600 hover:bg-orange-700 transition-colors shadow-lg shadow-orange-900/20">
                         Issuġġerixxi Programm
                     </a>
                 </div>
