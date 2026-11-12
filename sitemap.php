@@ -50,7 +50,6 @@ $episodes = $pdo->query(
     "SELECT slug, COALESCE(publish_date, published_at, created_at) AS lastmod
      FROM episodes
      WHERE slug IS NOT NULL AND TRIM(slug) != ''
-       AND title NOT IN ('Deleted video', 'Private video')
      ORDER BY id ASC"
 )->fetchAll(PDO::FETCH_ASSOC);
 
