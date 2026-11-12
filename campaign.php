@@ -144,7 +144,7 @@ include 'header_frontend.php';
                                 </p>
                                 
                                 <div class="mt-auto">
-                                    <a href="<?php echo getEpisodeUrl($item['episode_slug'], $item['id']); ?>" class="inline-flex items-center text-sm font-medium text-white bg-gray-700 hover:bg-orange-600 px-4 py-2 rounded-lg transition-colors">
+                                    <a href="<?php echo getEpisodeUrl($item['episode_slug'], $item['id']); ?>" class="inline-flex items-center text-sm font-medium text-white hover:text-black bg-gray-700 hover:bg-orange-600 px-4 py-2 rounded-lg transition-colors">
                                         Ara l-Episodju u d-Dettalji 
                                         <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                                     </a>

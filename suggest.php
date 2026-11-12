@@ -61,7 +61,7 @@ include 'header_frontend.php';
                         <p class="text-xs text-gray-500 mt-1">Nużawha biss biex nikkuntattjawk dwar is-suġġeriment tiegħek.</p>
                     </div>
 
-                    <button type="submit" name="submit_suggestion" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg shadow-md transition-colors text-lg">
+                    <button type="submit" name="submit_suggestion" class="w-full bg-orange-500 hover:bg-orange-600 text-black font-medium py-3 px-4 rounded-lg shadow-md transition-colors text-lg">
                         Ibgħat Suġġeriment
                     </button>
                 </form>

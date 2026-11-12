@@ -129,6 +129,24 @@ if (!isset($series_list)) {
     
     <!-- PERFORMANCE: Defer non-critical CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              orange: {
+                50: '#FFFBEA', 100: '#FFF5C7', 200: '#FFEE99', 300: '#FFE775',
+                400: '#FFDE5B', 500: '#FFDE5B', 600: '#F5CF3A', 700: '#E0B91F',
+                800: '#B8960F', 900: '#8A700B', 950: '#4D3E05'
+              },
+              brand: {
+                yellow: '#FFDE5B', coral: '#F45859', charcoal: '#21201E', black: '#000000'
+              }
+            }
+          }
+        }
+      };
+    </script>
     
     <!-- Load Google Fonts asynchronously -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
@@ -146,8 +164,8 @@ if (!isset($series_list)) {
     <?php endif; ?>
     
     <style>
-        body { font-family: 'Inter', sans-serif; background: #090d16; color: white; }
-        a { color: #fb923c; text-decoration: none; }
+        body { font-family: 'Inter', sans-serif; background: #000000; color: white; }
+        a { color: #FFDE5B; text-decoration: none; }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #111827; }
         ::-webkit-scrollbar-thumb { background: #374151; border-radius: 8px; }
@@ -155,7 +173,7 @@ if (!isset($series_list)) {
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
         .sub-nav::-webkit-scrollbar { height: 4px; }
-        .sub-nav::-webkit-scrollbar-thumb { background: #fb923c; border-radius: 4px; }
+        .sub-nav::-webkit-scrollbar-thumb { background: #FFDE5B; border-radius: 4px; }
         .sub-nav::-webkit-scrollbar-track { background: transparent; }
         body { padding-bottom: env(safe-area-inset-bottom); }
         
@@ -164,14 +182,17 @@ if (!isset($series_list)) {
             content-visibility: auto;
             contain-intrinsic-size: 1px 1000px; /* Estimate height */
         }
-        .hub-surface { background: linear-gradient(145deg, rgba(31,41,55,.9), rgba(17,24,39,.72)); }
-        .hub-card { background: rgba(22,29,43,.88); border-color: rgba(75,85,99,.55); }
-        .hub-card:hover { transform: translateY(-4px); border-color: rgba(249,115,22,.62); box-shadow: 0 22px 55px rgba(0,0,0,.28); }
+        .bg-gray-900 { background-color: #000000 !important; }
+        .bg-gray-800 { background-color: #21201E !important; }
+        .bg-gray-700 { background-color: #2A2926 !important; }
+        .hub-surface { background: linear-gradient(145deg, rgba(33,32,30,.98), rgba(0,0,0,.9)); }
+        .hub-card { background: rgba(33,32,30,.96); border-color: rgba(255,255,255,.1); }
+        .hub-card:hover { transform: translateY(-4px); border-color: rgba(255,222,91,.62); box-shadow: 0 22px 55px rgba(0,0,0,.45); }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col text-gray-200">
 
-    <header class="bg-[#090d16]/90 backdrop-blur-xl sticky top-0 z-50 border-b border-white/5">
+    <header class="bg-black/95 backdrop-blur-xl sticky top-0 z-50 border-b border-white/10">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16 sm:h-20">
                 <div class="flex-shrink-0">
@@ -184,16 +205,16 @@ if (!isset($series_list)) {
         </div>
     </header>
 
-    <nav class="bg-[#0d1320]/92 backdrop-blur-xl border-b border-white/5 sticky top-16 sm:top-20 z-40">
+    <nav class="bg-black/95 backdrop-blur-xl border-b border-white/10 sticky top-16 sm:top-20 z-40">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center gap-3 py-3">
                 
                 <!-- Left Side: Menus -->
                 <div class="flex gap-2 sm:gap-4 min-w-0">
                     <div class="relative">
-                        <button onclick="toggleDropdown('categoryMenu')" aria-expanded="false" aria-controls="categoryMenu" class="font-semibold text-white transition-colors flex items-center bg-orange-600 hover:bg-orange-700 px-3 sm:px-4 py-2 rounded-lg shadow-md">
+                        <button onclick="toggleDropdown('categoryMenu')" aria-expanded="false" aria-controls="categoryMenu" class="font-semibold text-black transition-colors flex items-center bg-orange-600 hover:bg-orange-700 px-3 sm:px-4 py-2 rounded-lg shadow-md">
                             Kategoriji
-                            <svg class="w-4 h-4 ml-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            <svg class="w-4 h-4 ml-2 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                         </button>
                         <div id="categoryMenu" class="absolute left-0 top-full mt-2 w-56 bg-gray-900 rounded-xl shadow-2xl py-2 z-50 hidden border border-gray-700">
                             <?php if (!empty($tags_list)): ?>

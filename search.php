@@ -82,14 +82,14 @@ include 'header_frontend.php';
                    class="w-full bg-gray-800 border border-gray-700 text-white rounded-full py-4 px-6 pl-12 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-lg"
                    placeholder="Fittex podcasts, mistiedna, jew suġġetti..." autofocus>
             <svg class="w-6 h-6 text-gray-400 absolute left-4 top-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-            <button type="submit" class="absolute right-2 top-2 bg-orange-600 text-white rounded-full px-6 py-2 hover:bg-orange-700 transition-colors font-medium">
+            <button type="submit" class="absolute right-2 top-2 bg-orange-600 text-black rounded-full px-6 py-2 hover:bg-orange-700 transition-colors font-medium">
                 Fittex
             </button>
         </form>
         <div class="flex flex-wrap justify-center gap-2 mt-5" aria-label="Iffiltra r-riżultati">
             <?php foreach (['all' => 'Kollha', 'series' => 'Programmi', 'episodes' => 'Episodji'] as $type_value => $type_label): ?>
                 <a href="?q=<?php echo urlencode($q); ?>&type=<?php echo $type_value; ?>"
-                   class="px-4 py-2 rounded-full text-sm font-semibold border transition-colors <?php echo $result_type === $type_value ? 'bg-orange-600 border-orange-500 text-white' : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-orange-500/60 hover:text-white'; ?>">
+                   class="px-4 py-2 rounded-full text-sm font-semibold border transition-colors <?php echo $result_type === $type_value ? 'bg-orange-600 border-orange-500 text-black' : 'bg-gray-800 border-gray-700 text-gray-300 hover:border-orange-500/60 hover:text-white'; ?>">
                     <?php echo $type_label; ?>
                 </a>
             <?php endforeach; ?>
@@ -165,7 +165,7 @@ include 'header_frontend.php';
                                 <p class="text-gray-400 text-sm mb-4 flex-grow line-clamp-3">
                                     <?php echo mb_strimwidth(htmlspecialchars($item['description']), 0, 100, "..."); ?>
                                 </p>
-                                <a href="<?php echo getEpisodeUrl($item['slug'] ?? '', $item['id']); ?>" class="mt-auto w-full block bg-gray-700 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg text-center transition-colors text-sm">
+                                <a href="<?php echo getEpisodeUrl($item['slug'] ?? '', $item['id']); ?>" class="mt-auto w-full block bg-gray-700 hover:bg-orange-600 text-white hover:text-black font-medium py-2 px-4 rounded-lg text-center transition-colors text-sm">
                                     Ara d-Dettalji <svg class="w-4 h-4 ml-1 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m0 0H3"></path></svg>
                                 </a>
                             </div>

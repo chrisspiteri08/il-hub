@@ -198,7 +198,7 @@ include 'header_frontend.php';
                         
                         <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                             <div class="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center shadow-xl transform scale-75 group-hover:scale-100 transition-transform duration-300">
-                                <svg class="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+                                <svg class="w-8 h-8 text-black ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
                             </div>
                         </div>
 
@@ -207,7 +207,7 @@ include 'header_frontend.php';
                                 Dalwaqt
                             </div>
                         <?php elseif ($is_new): ?>
-                            <div class="absolute top-3 right-3 bg-green-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg z-20 border border-green-500 animate-pulse">
+                            <div class="absolute top-3 right-3 bg-brand-coral text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg z-20 border border-brand-coral animate-pulse">
                                 Ġdid
                             </div>
                         <?php endif; ?>
@@ -256,7 +256,7 @@ include 'header_frontend.php';
             <span class="text-gray-400 font-medium px-4">Paġna <?php echo $page; ?> minn <?php echo $total_pages; ?></span>
 
             <?php if ($page < $total_pages): ?>
-                <a href="/category/<?php echo rawurlencode($tag_name); ?>?page=<?php echo $page + 1; ?>" class="px-6 py-3 bg-orange-600 text-white rounded-full hover:bg-orange-700 transition-colors shadow-lg hover:shadow-orange-500/20 font-medium flex items-center">
+                <a href="/category/<?php echo rawurlencode($tag_slug); ?>?page=<?php echo $page + 1; ?>" class="px-6 py-3 bg-orange-600 text-black rounded-full hover:bg-orange-700 transition-colors shadow-lg hover:shadow-orange-500/20 font-medium flex items-center">
                     Li Jmiss <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </a>
             <?php else: ?>

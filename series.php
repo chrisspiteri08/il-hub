@@ -284,7 +284,7 @@ include 'header_frontend.php';
             <span class="text-gray-400 font-medium px-4">Paġna <?php echo $page; ?> minn <?php echo $total_pages; ?></span>
 
             <?php if ($page < $total_pages): ?>
-                <a href="<?php echo $base_url . $joiner . 'page=' . ($page + 1); ?>" class="px-6 py-3 bg-orange-600 text-white rounded-full hover:bg-orange-700 transition-colors shadow-lg hover:shadow-orange-500/20 font-medium flex items-center">
+                <a href="<?php echo $base_url . $joiner . 'page=' . ($page + 1); ?>" class="px-6 py-3 bg-orange-600 text-black rounded-full hover:bg-orange-700 transition-colors shadow-lg hover:shadow-orange-500/20 font-medium flex items-center">
                     Li Jmiss <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                 </a>
             <?php else: ?>
