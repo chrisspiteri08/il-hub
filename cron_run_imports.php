@@ -32,6 +32,7 @@ if (!isset($_GET['key']) || $_GET['key'] !== $secret_key) {
 // We do this once at the start so we know which ID to look for in the loop
 $music_tag_id = null;
 $podcast_tag_id = null;
+$children_tag_id = null;
 try {
     $m_stmt = $pdo->prepare("SELECT id FROM tags WHERE name = 'music' LIMIT 1");
     $m_stmt->execute();
@@ -39,6 +40,9 @@ try {
     $p_stmt = $pdo->prepare("SELECT id FROM tags WHERE name = 'Diskussjonijiet u Podcasts' LIMIT 1");
     $p_stmt->execute();
     $podcast_tag_id = $p_stmt->fetchColumn();
+    $c_stmt = $pdo->prepare("SELECT id FROM tags WHERE slug = 'children' OR name = 'children' LIMIT 1");
+    $c_stmt->execute();
+    $children_tag_id = $c_stmt->fetchColumn();
 } catch (Exception $e) {
     // If this fails, we just won't have special music handling
 }
@@ -322,12 +326,16 @@ try {
         // Default limit is 600 seconds (10 mins) to block shorts/trailers
         $min_duration_seconds = 600;
         $is_music_job = false;
+        $is_children_job = false;
 
         // Music and podcast jobs can contain valid short-form episodes.
         if ($music_tag_id && in_array($music_tag_id, $tag_ids_array)) {
             $is_music_job = true;
             $min_duration_seconds = 0;
         } elseif ($podcast_tag_id && in_array($podcast_tag_id, $tag_ids_array)) {
+            $min_duration_seconds = 0;
+        } elseif ($children_tag_id && in_array($children_tag_id, $tag_ids_array)) {
+            $is_children_job = true;
             $min_duration_seconds = 0;
         }
 
@@ -342,6 +350,7 @@ try {
         $job_added_count = 0;
         $job_skipped_existing = 0;
         $job_skipped_duration = 0;
+        $job_skipped_shorts = 0;
         $job_skipped_junk = 0;
 
         try {
@@ -446,8 +455,14 @@ try {
                                 try {
                                     $interval = new DateInterval($video_details_map[$video_id]['contentDetails']['duration']);
                                     $seconds = $interval->h * 3600 + $interval->i * 60 + $interval->s;
-                                    
-                                    if ($seconds < $min_duration_seconds) {
+
+                                    $short_text = $title . ' ' . ($snippet['description'] ?? '');
+                                    $has_short_hint = preg_match('/#shorts?\b/i', $short_text) === 1;
+                                    if ($is_children_job && ($seconds < 60 || $has_short_hint)) {
+                                        $job_skipped_shorts++;
+                                        echo "Skipped (Child Short - {$seconds}s): $title\n";
+                                        continue;
+                                    } elseif ($seconds < $min_duration_seconds) {
                                         $job_skipped_duration++; 
                                         echo "Skipped (Too Short - {$seconds}s): $title\n";
                                         continue; 
@@ -587,7 +602,7 @@ try {
             $total_episodes_added += $job_added_count;
             
             // --- IMPROVED LOG SUMMARY ---
-            echo "Import Complete: Added $job_added_count. Existing: $job_skipped_existing. Too Short: $job_skipped_duration. Junk: $job_skipped_junk.\n";
+            echo "Import Complete: Added $job_added_count. Existing: $job_skipped_existing. Too Short: $job_skipped_duration. Shorts: $job_skipped_shorts. Junk: $job_skipped_junk.\n";
             
             $update_job_stmt->execute([$job['id']]);
             echo "Job #{$job['id']} marked as checked.\n";
