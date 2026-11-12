@@ -113,7 +113,7 @@ function postToFacebook($message, $image_url, $page_id, $page_token) {
     
     $response = curl_exec($ch);
     $curl_error = curl_error($ch);
-    $curl_close($ch);
+    curl_close($ch);
     
     if ($response === FALSE || $curl_error) return "Facebook Post Failed (cURL): " . $curl_error;
     
