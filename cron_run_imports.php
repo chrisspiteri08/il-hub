@@ -11,6 +11,7 @@ ob_start();
 
 // --- NEW: Use config_loader ---
 require_once 'config_loader.php';
+require_once 'slug_helpers.php';
 
 // --- CONFIGURATION (Now from $settings) ---
 $secret_key = $settings['cron_secret_key'];
@@ -52,25 +53,38 @@ function writeToLog($pdo, $summary, $status = 'Success') {
  * Smart Helper to automatically generate a unique slug for a new episode
  */
 function updateSlug($pdo, $episode_id, $title, $publish_date) {
-    // 1. Generate clean base slug
-    $base_slug = strtolower($title);
-    $base_slug = str_replace(
-        ['ċ', 'ġ', 'ħ', 'ż', 'à', 'è', 'ì', 'ò', 'ù'],
-        ['c', 'g', 'h', 'z', 'a', 'e', 'i', 'o', 'u'],
-        $base_slug
+    $series_stmt = $pdo->prepare(
+        'SELECT s.title FROM episodes e LEFT JOIN series s ON s.id = e.series_id WHERE e.id = ?'
     );
-    $base_slug = preg_replace('/[^a-z0-9]+/', '-', $base_slug);
-    $base_slug = trim($base_slug, '-');
+    $series_stmt->execute([$episode_id]);
+    $series_title = (string) $series_stmt->fetchColumn();
 
-    // 2. Determine unique suffix (Prioritizing Date, fallback to ID)
-    $has_valid_date = !empty($publish_date) && $publish_date !== '0000-00-00 00:00:00' && $publish_date !== '0000-00-00';
-    if ($has_valid_date) {
-        $slug = $base_slug . "-" . date('Y-m-d', strtotime($publish_date));
-    } else {
-        $slug = $base_slug . "-" . $episode_id;
+    $base_slug = make_slug((string) $title);
+    $series_slug = make_slug($series_title);
+    $generic_title = $base_slug !== '' && $base_slug === $series_slug;
+    $candidate = $base_slug !== '' ? $base_slug : ($series_slug !== '' ? $series_slug : 'episode');
+
+    $is_taken = $pdo->prepare('SELECT COUNT(*) FROM episodes WHERE slug = ? AND id != ?');
+    $is_taken->execute([$candidate, $episode_id]);
+    if ($generic_title || (int) $is_taken->fetchColumn() > 0) {
+        $has_valid_date = !empty($publish_date)
+            && $publish_date !== '0000-00-00 00:00:00'
+            && $publish_date !== '0000-00-00';
+        $suffix = $has_valid_date ? date('Y-m-d', strtotime($publish_date)) : (string) $episode_id;
+        $candidate = ($series_slug !== '' ? $series_slug : $candidate) . '-' . $suffix;
     }
 
-    // 3. Save the unique slug back to the episodes table
+    $slug = $candidate;
+    $number = 2;
+    while (true) {
+        $is_taken->execute([$slug, $episode_id]);
+        if ((int) $is_taken->fetchColumn() === 0) {
+            break;
+        }
+        $number_suffix = '-' . $number++;
+        $slug = rtrim(substr($candidate, 0, 90 - strlen($number_suffix)), '-') . $number_suffix;
+    }
+
     $update_slug_stmt = $pdo->prepare("UPDATE episodes SET slug = ? WHERE id = ?");
     $update_slug_stmt->execute([$slug, $episode_id]);
 }
