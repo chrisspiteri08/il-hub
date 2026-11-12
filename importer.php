@@ -13,6 +13,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 // --- FACEBOOK CONFIG (Now from $settings) ---
 $fb_page_id = $settings['fb_page_id'];
 $fb_page_token = $settings['fb_page_token'];
+$fb_autopost_enabled = ($settings['fb_autopost_enabled'] ?? '0') === '1';
 // --- END FACEBOOK CONFIG ---
 
 $message = '';
@@ -81,7 +82,7 @@ function postToFacebook($message, $link, $page_id, $page_token) {
 if (isset($_POST['fetch_url'])) {
     $url = $_POST['url_to_fetch'];
     // --- NEW: Get API key from settings ---
-    $api_key = $settings['youtube_api_key']; 
+    $api_key = $settings['youtube_api_key'];
     $prefill['media_url'] = $url; // Pre-fill the URL we're fetching
 
     try {
@@ -106,7 +107,7 @@ if (isset($_POST['fetch_url'])) {
             if (empty($api_key)) {
                 throw new Exception("YouTube API Key is not set in your admin settings.");
             }
-            
+
             $details_url = "https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=" . urlencode($video_id) . "&key=" . urlencode($api_key);
             $details_json = fetchUrlContent($details_url);
             $details_data = json_decode($details_json, true);
@@ -114,13 +115,13 @@ if (isset($_POST['fetch_url'])) {
             if (isset($details_data['error'])) {
                 throw new Exception("API Error: " . htmlspecialchars($details_data['error']['message']));
             }
-            
+
             if (!empty($details_data['items'])) {
                 $video = $details_data['items'][0];
                 $snippet = $video['snippet'];
-                
+
                 $prefill['title'] = $snippet['title'];
-                
+
                 // --- NEW JUNK VIDEO FILTER ---
                 if ($prefill['title'] == 'Deleted video' || $prefill['title'] == 'Private video') {
                     throw new Exception("This is a 'Deleted' or 'Private' video and will not be added.");
@@ -130,18 +131,18 @@ if (isset($_POST['fetch_url'])) {
                 $prefill['description'] = $snippet['description'];
                 $prefill['thumbnail_url'] = $snippet['thumbnails']['high']['url'] ?? $snippet['thumbnails']['medium']['url'] ?? 'https://placehold.co/600x400/1f2937/7f9cf5?text=No+Image';
                 $prefill['platform'] = 'YouTube';
-                
+
                 $publish_date_iso = $snippet['publishedAt'];
                 if (isset($video['liveStreamingDetails']['scheduledStartTime'])) {
                     $publish_date_iso = $video['liveStreamingDetails']['scheduledStartTime'];
                 }
                 $prefill['publish_date'] = date('Y-m-d\TH:i', strtotime($publish_date_iso));
-                
+
                 $message = '<div class="bg-green-600 p-4 rounded-lg text-white">YouTube details fetched successfully! Please select a Series and Tags below.</div>';
             } else {
                 throw new Exception("Video not found on YouTube.");
             }
-        
+
         } else {
             // --- Fallback to scraping og:meta tags (for TVMi, etc.) ---
             $html = fetchUrlContent($url);
@@ -173,7 +174,7 @@ if (isset($_POST['fetch_url'])) {
                     throw new Exception("This is a 'Deleted' or 'Private' video and will not be added.");
                 }
                 // --- END FILTER ---
-                
+
                 // Also guess platform from URL
                 if (strpos($url, 'tvmi.mt') !== false) $prefill['platform'] = 'TVMi';
                 if (strpos($url, 'one.com.mt') !== false) $prefill['platform'] = 'ONE';
@@ -197,7 +198,7 @@ if (isset($_POST['add_episode'])) {
     } else {
         try {
             $pdo->beginTransaction();
-            
+
             $stmt = $pdo->prepare("INSERT INTO episodes (series_id, title, description, media_url, thumbnail_url, platform, publish_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
             $stmt->execute([
                 $_POST['series_id'],
@@ -214,34 +215,38 @@ if (isset($_POST['add_episode'])) {
             foreach ($tag_ids as $tag_id) {
                 $tag_stmt->execute([$new_episode_id, $tag_id]);
             }
-            
+
             $pdo->commit();
-            
+
             // --- NEW: Post to Facebook ---
-            try {
-                // Get the Series Title for the post
-                $series_stmt = $pdo->prepare("SELECT title FROM series WHERE id = ?");
-                $series_stmt->execute([$_POST['series_id']]);
-                $series_title = $series_stmt->fetchColumn();
-                
-                // === NEW: Get template from settings ===
-                $fb_message_template = $settings['fb_post_template_single'];
-                $fb_message = str_replace(
-                    ['{title}', '{series}'],
-                    [$_POST['title'], $series_title],
-                    $fb_message_template
-                );
-                $fb_link = $_POST['media_url'];
-                
-                // Post to Facebook
-                $fb_status = postToFacebook($fb_message, $fb_link, $fb_page_id, $fb_page_token);
-                
-                // Set a success message that includes the Facebook post
-                $message = '<div class="bg-green-600 p-4 rounded-lg text-white">New episode added and posted to Facebook! ('.$fb_status.')</div>';
-                
-            } catch (Exception $e) {
-                // Catch Facebook post errors
-                $message = '<div class="bg-yellow-500 p-4 rounded-lg text-yellow-900">Episode added to DB, but FAILED to post to Facebook. Error: ' . $e->getMessage() . '</div>';
+            if (!$fb_autopost_enabled) {
+                $message = '<div class="bg-green-600 p-4 rounded-lg text-white">New episode added successfully. Facebook auto-post is disabled.</div>';
+            } else {
+                try {
+                    // Get the Series Title for the post
+                    $series_stmt = $pdo->prepare("SELECT title FROM series WHERE id = ?");
+                    $series_stmt->execute([$_POST['series_id']]);
+                    $series_title = $series_stmt->fetchColumn();
+
+                    // === NEW: Get template from settings ===
+                    $fb_message_template = $settings['fb_post_template_single'];
+                    $fb_message = str_replace(
+                        ['{title}', '{series}'],
+                        [$_POST['title'], $series_title],
+                        $fb_message_template
+                    );
+                    $fb_link = $_POST['media_url'];
+
+                    // Post to Facebook
+                    $fb_status = postToFacebook($fb_message, $fb_link, $fb_page_id, $fb_page_token);
+
+                    // Set a success message that includes the Facebook post
+                    $message = '<div class="bg-green-600 p-4 rounded-lg text-white">New episode added and posted to Facebook! ('.$fb_status.')</div>';
+
+                } catch (Exception $e) {
+                    // Catch Facebook post errors
+                    $message = '<div class="bg-yellow-500 p-4 rounded-lg text-yellow-900">Episode added to DB, but FAILED to post to Facebook. Error: ' . $e->getMessage() . '</div>';
+                }
             }
             // --- END: Post to Facebook ---
 
@@ -293,7 +298,7 @@ if (isset($_POST['add_episode'])) {
                 <label for="url_to_fetch" class="block text-sm font-medium text-gray-300">Paste Episode URL (YouTube, TVMi, etc.)</label>
                 <input type="url" name="url_to_fetch" id="url_to_fetch" required class="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md shadow-sm text-white focus:border-orange-400 focus:ring focus:ring-orange-300 focus:ring-opacity-50" value="<?php echo htmlspecialchars($prefill['media_url']); ?>">
             </div>
-            
+
             <p class="text-xs text-gray-400">If this is a YouTube URL, the site's API key will be used automatically.</p>
             <button type="submit" name="fetch_url" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-colors">
                 Fetch Details
@@ -313,7 +318,7 @@ if (isset($_POST['add_episode'])) {
                     <?php endforeach; ?>
                 </select>
             </div>
-            
+
             <div>
                 <label for="e_title" class="block text-sm font-medium text-gray-300">Episode Title</label>
                 <input type="text" name="title" id="e_title" required class="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md shadow-sm text-white focus:border-orange-400 focus:ring focus:ring-orange-300 focus:ring-opacity-50" value="<?php echo htmlspecialchars($prefill['title']); ?>">

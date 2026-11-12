@@ -11,6 +11,7 @@ $message = '';
 if (isset($_POST['update_settings'])) {
     try {
         $pdo->beginTransaction();
+        $_POST['settings']['fb_autopost_enabled'] = isset($_POST['settings']['fb_autopost_enabled']) ? '1' : '0';
         
         // Prepare statements for both checking, updating, and inserting
         $check_stmt = $pdo->prepare("SELECT COUNT(*) FROM settings WHERE setting_name = ?");
@@ -92,6 +93,11 @@ if (isset($_POST['update_settings'])) {
             <div>
                 <label for="fb_page_token" class="block text-sm font-medium text-gray-300">Facebook Page Access Token</label>
                 <textarea name="settings[fb_page_token]" id="fb_page_token" rows="5" class="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md shadow-sm text-white focus:border-orange-400 focus:ring focus:ring-orange-300 focus:ring-opacity-50"><?php echo htmlspecialchars($settings['fb_page_token'] ?? ''); ?></textarea>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <input type="checkbox" name="settings[fb_autopost_enabled]" id="fb_autopost_enabled" value="1" class="h-4 w-4 rounded border-gray-500 text-orange-500 focus:ring-orange-400" <?php echo (($settings['fb_autopost_enabled'] ?? '0') === '1') ? 'checked' : ''; ?>>
+                <label for="fb_autopost_enabled" class="text-sm font-medium text-gray-300">Auto-post new episodes to Facebook</label>
             </div>
 
             <hr class="border-gray-600">

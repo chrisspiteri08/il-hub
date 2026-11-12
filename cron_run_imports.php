@@ -17,6 +17,7 @@ require_once 'slug_helpers.php';
 $secret_key = $settings['cron_secret_key'];
 $fb_page_id = $settings['fb_page_id'];
 $fb_page_token = $settings['fb_page_token'];
+$fb_autopost_enabled = ($settings['fb_autopost_enabled'] ?? '0') === '1';
 $youtube_api_key = $settings['youtube_api_key']; // Get the global key
 
 // 1. Check the secret key
@@ -281,7 +282,7 @@ try {
     }
 
     $jobs = $pdo->prepare("
-        SELECT ai.*, s.title AS series_title, s.id AS series_db_id, GROUP_CONCAT(it.tag_id) AS tag_ids
+        SELECT ai.*, s.title AS series_title, s.slug AS series_slug, s.id AS series_db_id, GROUP_CONCAT(it.tag_id) AS tag_ids
         FROM automated_imports AS ai
         JOIN series AS s ON ai.series_id = s.id
         JOIN import_tags AS it ON ai.id = it.import_id
@@ -311,6 +312,7 @@ try {
         $job_id = $job['id'];
         $series_id = $job['series_id'];
         $series_title = $job['series_title'];
+        $series_slug = $job['series_slug'];
         $series_db_id = $job['series_db_id']; 
         $import_url = $job['import_url_or_id'];
         $job_type = $job['job_type'];
@@ -486,6 +488,7 @@ try {
                                 'url' => $media_url, 
                                 'thumbnail_url' => $thumbnail_url, 
                                 'series_id' => $series_db_id,
+                                'series_slug' => $series_slug,
                                 'is_music' => $is_music_job // Store the flag
                             ]; 
                             foreach ($tag_ids_array as $tag_id) $tag_stmt->execute([$new_episode_id, $tag_id]);
@@ -571,6 +574,7 @@ try {
                             'url' => $media_url, 
                             'thumbnail_url' => $details['thumbnail_url'],
                             'series_id' => $series_db_id,
+                            'series_slug' => $series_slug,
                             'is_music' => $is_music_job // Store the flag
                         ]; 
                         foreach ($tag_ids_array as $tag_id) $tag_stmt->execute([$new_episode_id, $tag_id]);
@@ -603,7 +607,9 @@ try {
     $count_to_post = count($episodes_to_post);
 
     // --- Use the filtered count for FB posting logic ---
-    if ($count_to_post > 0) {
+    if (!$fb_autopost_enabled) {
+        echo "Facebook auto-post disabled; skipped.\n";
+    } elseif ($count_to_post > 0) {
         $fb_message = "";
         $fb_image = "";
         
@@ -617,7 +623,7 @@ try {
                 $first_episode['title'], 
                 $first_episode['series_title'], 
                 $first_episode['url'], 
-                "https://il-hub.com/series.php?series_id={$first_episode['series_id']}" // Use new series link
+                "https://www.il-hub.com/series/{$first_episode['series_slug']}"
             ];
 
             $fb_message = str_replace($search, $replace, $fb_message_template);

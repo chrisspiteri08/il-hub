@@ -44,6 +44,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 // --- FACEBOOK CONFIG (Now from $settings) ---
 $fb_page_id = $settings['fb_page_id'] ?? '';
 $fb_page_token = $settings['fb_page_token'] ?? '';
+$fb_autopost_enabled = ($settings['fb_autopost_enabled'] ?? '0') === '1';
 writeDebugLog("Loaded settings. FB Page ID: " . ($fb_page_id ? 'Configured' : 'Missing'));
 // --- END FACEBOOK CONFIG ---
 
@@ -73,14 +74,14 @@ try {
  */
 function createSlug($text) {
     $text = strtolower($text);
-    
+
     // Explicitly replace Maltese characters first to avoid issues
     $text = str_replace(
-        ['ċ', 'ġ', 'ħ', 'ż', 'à', 'è', 'ì', 'ò', 'ù'], 
-        ['c', 'g', 'h', 'z', 'a', 'e', 'i', 'o', 'u'], 
+        ['ċ', 'ġ', 'ħ', 'ż', 'à', 'è', 'ì', 'ò', 'ù'],
+        ['c', 'g', 'h', 'z', 'a', 'e', 'i', 'o', 'u'],
         $text
     );
-    
+
     // Replace non-letters or digits with -
     $text = preg_replace('/[^a-z0-9]+/i', '-', $text);
     // Trim dashes
@@ -109,14 +110,14 @@ function fetchUrlContent($url) {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
     curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36');
     curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); 
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_REFERER, "https://il-hub.com");
 
     $html = curl_exec($ch);
     $curl_err = curl_error($ch);
     curl_close($ch);
-    
+
     if ($curl_err) {
         writeDebugLog("cURL transfer error reported: $curl_err");
     } else {
@@ -134,16 +135,16 @@ function postToFacebook($message, $image_url, $page_id, $page_token) {
         writeDebugLog("Skipping Facebook posting: missing credentials.");
         return "Skipped Facebook (Config missing)";
     }
-    
+
     writeDebugLog("Posting newly added episode to Facebook page $page_id...");
     $fb_api_url = "https://graph.facebook.com/v18.0/{$page_id}/photos";
-    
+
     $params = [
         'url' => $image_url,
         'caption' => $message,
         'access_token' => $page_token
     ];
-    
+
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $fb_api_url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -151,22 +152,22 @@ function postToFacebook($message, $image_url, $page_id, $page_token) {
     curl_setopt($ch, CURLOPT_POSTFIELDS, $params);
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
-    
+
     $response = curl_exec($ch);
     $curl_error = curl_error($ch);
     curl_close($ch);
-    
+
     if ($response === FALSE || $curl_error) {
         writeDebugLog("Facebook API post error (cURL): $curl_error");
         return "Facebook Post Failed (cURL): " . $curl_error;
     }
-    
+
     $response_data = json_decode($response, true);
     if (isset($response_data['error'])) {
         writeDebugLog("Facebook API returned error response: " . json_encode($response_data['error']));
         return "Facebook Post Failed (API): " . "(Code ".$response_data['error']['code'].") ".$response_data['error']['message'];
     }
-    
+
     writeDebugLog("Successfully posted content to Facebook.");
     return "Posted Photo to Facebook!";
 }
@@ -175,7 +176,7 @@ function postToFacebook($message, $image_url, $page_id, $page_token) {
 if (isset($_POST['fetch_url'])) {
     $url = $_POST['url_to_fetch'];
     writeDebugLog("Fetch URL submitted for URL: $url");
-    $api_key = $settings['youtube_api_key'] ?? ''; 
+    $api_key = $settings['youtube_api_key'] ?? '';
     $prefill['media_url'] = $url;
 
     try {
@@ -200,7 +201,7 @@ if (isset($_POST['fetch_url'])) {
                 writeDebugLog("Exception: YouTube API Key is missing in general admin settings.");
                 throw new Exception("YouTube API Key is not set in your admin settings.");
             }
-            
+
             $details_url = "https://www.googleapis.com/youtube/v3/videos?part=snippet,liveStreamingDetails&id=" . urlencode($video_id) . "&key=" . urlencode($api_key);
             writeDebugLog("Sending query request directly to YouTube API...");
             $details_json = fetchUrlContent($details_url);
@@ -210,14 +211,14 @@ if (isset($_POST['fetch_url'])) {
                 writeDebugLog("YouTube API responded with error: " . $details_data['error']['message']);
                 throw new Exception("API Error: " . htmlspecialchars($details_data['error']['message']));
             }
-            
+
             if (!empty($details_data['items'])) {
                 $video = $details_data['items'][0];
                 $snippet = $video['snippet'];
-                
+
                 $prefill['title'] = $snippet['title'];
                 writeDebugLog("Prefill Title successfully mapped: " . $prefill['title']);
-                
+
                 if ($prefill['title'] == 'Deleted video' || $prefill['title'] == 'Private video') {
                     throw new Exception("This is a 'Deleted' or 'Private' video and will not be added.");
                 }
@@ -225,19 +226,19 @@ if (isset($_POST['fetch_url'])) {
                 $prefill['description'] = $snippet['description'];
                 $prefill['thumbnail_url'] = $snippet['thumbnails']['high']['url'] ?? $snippet['thumbnails']['medium']['url'] ?? 'https://placehold.co/600x400/1f2937/7f9cf5?text=No+Image';
                 $prefill['platform'] = 'YouTube';
-                
+
                 $publish_date_iso = $snippet['publishedAt'];
                 if (isset($video['liveStreamingDetails']['scheduledStartTime'])) {
                     $publish_date_iso = $video['liveStreamingDetails']['scheduledStartTime'];
                 }
                 $prefill['publish_date'] = date('Y-m-d\TH:i', strtotime($publish_date_iso));
-                
+
                 $message = '<div class="bg-green-600 p-4 rounded-lg text-white">YouTube details fetched successfully!</div>';
             } else {
                 writeDebugLog("No valid items returned from YouTube API query.");
                 throw new Exception("Video not found on YouTube.");
             }
-        
+
         } else {
             writeDebugLog("Proceeding with custom fallback page scraper...");
             $html = fetchUrlContent($url);
@@ -311,7 +312,7 @@ if (isset($_POST['fetch_url'])) {
                 if ($prefill['title'] == 'Deleted video' || $prefill['title'] == 'Private video') {
                     throw new Exception("This is a 'Deleted' or 'Private' video and will not be added.");
                 }
-                
+
                 if (strpos($url, 'tvmi.mt') !== false) $prefill['platform'] = 'TVMi';
                 if (strpos($url, 'one.com.mt') !== false) $prefill['platform'] = 'ONE';
                 if (strpos($url, 'youtube.com') !== false || strpos($url, 'youtu.be') !== false) $prefill['platform'] = 'YouTube';
@@ -341,7 +342,7 @@ if (isset($_POST['add_episode'])) {
         try {
             writeDebugLog("Database transaction beginning...");
             $pdo->beginTransaction();
-            
+
             // Format datetime-local string to clean SQL timestamp format safely
             $publish_date_raw = empty($_POST['publish_date']) ? null : $_POST['publish_date'];
             $publish_date_sql = null;
@@ -399,24 +400,29 @@ if (isset($_POST['add_episode'])) {
             writeDebugLog("Committing database transaction...");
             $pdo->commit();
             writeDebugLog("Database transaction successfully committed.");
-            
+
             // --- Post Photo to Facebook ---
-            try {
-                $series_stmt = $pdo->prepare("SELECT title FROM series WHERE id = ?");
-                $series_stmt->execute([$_POST['series_id']]);
-                $series_title = $series_stmt->fetchColumn();
-                
-                $fb_message = "New Episode Added on il-hub.com\n\n";
-                $fb_message .= "'" . $_POST['title'] . "' from " . $series_title . "\n\n";
-                $fb_message .= "Watch here: https://il-hub.com/episode/" . $slug;
-                $fb_image = $_POST['thumbnail_url'];
-                
-                $fb_status = postToFacebook($fb_message, $fb_image, $fb_page_id, $fb_page_token);
-                $message = '<div class="bg-green-600 p-4 rounded-lg text-white">New episode added and posted to Facebook! ('.$fb_status.')</div>';
-                
-            } catch (Exception $e) {
-                writeDebugLog("Facebook integration failed: " . $e->getMessage());
-                $message = '<div class="bg-yellow-500 p-4 rounded-lg text-yellow-900">Episode added, but FAILED to post to Facebook. Error: ' . $e->getMessage() . '</div>';
+            if (!$fb_autopost_enabled) {
+                writeDebugLog('Facebook auto-post disabled; skipped.');
+                $message = '<div class="bg-green-600 p-4 rounded-lg text-white">New episode added successfully. Facebook auto-post is disabled.</div>';
+            } else {
+                try {
+                    $series_stmt = $pdo->prepare("SELECT title FROM series WHERE id = ?");
+                    $series_stmt->execute([$_POST['series_id']]);
+                    $series_title = $series_stmt->fetchColumn();
+
+                    $fb_message = "New Episode Added on il-hub.com\n\n";
+                    $fb_message .= "'" . $_POST['title'] . "' from " . $series_title . "\n\n";
+                    $fb_message .= "Watch here: https://il-hub.com/episode/" . $slug;
+                    $fb_image = $_POST['thumbnail_url'];
+
+                    $fb_status = postToFacebook($fb_message, $fb_image, $fb_page_id, $fb_page_token);
+                    $message = '<div class="bg-green-600 p-4 rounded-lg text-white">New episode added and posted to Facebook! ('.$fb_status.')</div>';
+
+                } catch (Exception $e) {
+                    writeDebugLog("Facebook integration failed: " . $e->getMessage());
+                    $message = '<div class="bg-yellow-500 p-4 rounded-lg text-yellow-900">Episode added, but FAILED to post to Facebook. Error: ' . $e->getMessage() . '</div>';
+                }
             }
 
             // Fully reset prefill array keys with empty strings to avoid notice-based 500 error crashes
@@ -467,7 +473,7 @@ if (isset($_POST['add_episode'])) {
                 <label for="url_to_fetch" class="block text-sm font-medium text-gray-300">Paste Episode URL (YouTube, TVMi, etc.)</label>
                 <input type="url" name="url_to_fetch" id="url_to_fetch" required class="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md shadow-sm text-white focus:border-orange-400 focus:ring focus:ring-orange-300 focus:ring-opacity-50" value="<?php echo htmlspecialchars($prefill['media_url']); ?>">
             </div>
-            
+
             <p class="text-xs text-gray-400">If this is a YouTube URL, the site's API key will be used automatically.</p>
             <button type="submit" name="fetch_url" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-2 px-4 rounded-lg shadow-md transition-colors">
                 Fetch Details
@@ -487,7 +493,7 @@ if (isset($_POST['add_episode'])) {
                     <?php endforeach; ?>
                 </select>
             </div>
-            
+
             <div>
                 <label for="e_title" class="block text-sm font-medium text-gray-300">Episode Title</label>
                 <input type="text" name="title" id="e_title" required class="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md shadow-sm text-white focus:border-orange-400 focus:ring focus:ring-orange-300 focus:ring-opacity-50" value="<?php echo htmlspecialchars($prefill['title']); ?>">
