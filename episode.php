@@ -4,43 +4,46 @@ require_once 'config_loader.php';
 $slug = $_GET['slug'] ?? null;
 $id = $_GET['id'] ?? null;
 
-// Smart Fallback: If a slug is provided but no explicit ID, check if it ends with "-[ID]"
-$fallback_id = null;
-if ($slug && !$id) {
-    // If it ends with a full date (e.g. -2026-05-17), do not treat the day as an ID
-    if (!preg_match('/-\d{4}-\d{2}-\d{2}$/', $slug)) {
-        if (preg_match('/-(\d+)$/', $slug, $matches)) {
-            $fallback_id = (int)$matches[1];
+try {
+    if ($slug !== null && $slug !== '') {
+        $stmt = $pdo->prepare("SELECT ep.*, s.title AS series_title, s.slug AS series_slug FROM episodes ep JOIN series s ON ep.series_id = s.id WHERE ep.slug = ? LIMIT 1");
+        $stmt->execute([$slug]);
+    } elseif ($id !== null && ctype_digit((string)$id)) {
+        $stmt = $pdo->prepare("SELECT ep.*, s.title AS series_title, s.slug AS series_slug FROM episodes ep JOIN series s ON ep.series_id = s.id WHERE ep.id = ? LIMIT 1");
+        $stmt->execute([(int)$id]);
+    } else {
+        $stmt = null;
+    }
+    $episode = $stmt ? $stmt->fetch(PDO::FETCH_ASSOC) : false;
+
+    if ($episode && (!$slug || $slug !== $episode['slug'])) {
+        header('Location: /episode/' . rawurlencode($episode['slug']), true, 301);
+        exit;
+    }
+
+    if (!$episode && $slug) {
+        $redirect_stmt = $pdo->prepare("SELECT ep.slug FROM slug_redirects sr JOIN episodes ep ON ep.id = sr.target_id WHERE sr.type = 'episode' AND sr.old_slug = ? ORDER BY sr.id ASC LIMIT 1");
+        $redirect_stmt->execute([$slug]);
+        $redirect_slug = $redirect_stmt->fetchColumn();
+        if ($redirect_slug) {
+            header('Location: /episode/' . rawurlencode($redirect_slug), true, 301);
+            exit;
         }
     }
-}
-
-// Ensure $fallback_id is set to an impossible database ID if none was found 
-// to prevent SQL syntax errors in strict environments.
-$fallback_id = $fallback_id ?? -1;
-
-// Improved query to handle slug/id safely without repeated named parameter issues
-try {
-    $stmt = $pdo->prepare("
-        SELECT ep.*, s.title as series_title, s.slug as series_slug
-        FROM episodes ep
-        JOIN series s ON ep.series_id = s.id
-        WHERE ep.slug = :slug
-           OR ep.id = :id
-           OR ep.id = :fallback_id
-        LIMIT 1
-    ");
-    $stmt->execute([
-        'slug' => $slug, 
-        'id' => $id,
-        'fallback_id' => $fallback_id
-    ]);
-    $episode = $stmt->fetch(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
-    die("Database Error.");
+    http_response_code(500);
+    exit('Database Error.');
 }
 
-if (!$episode) { header("Location: /index.php"); exit; }
+if (!$episode) {
+    http_response_code(404);
+    $page_title = 'Episodju ma nstabx | il-hub.com';
+    $page_description = 'L-episodju li tlabt ma nstabx.';
+    include 'header_frontend.php';
+    echo '<main class="container mx-auto px-4 py-20 text-center"><h1 class="text-4xl font-extrabold text-white mb-4">Episodju ma nstabx</h1><p class="text-gray-400 mb-8">Jista’ jkun li l-link inbidel jew l-episodju tneħħa.</p><a class="text-orange-400 font-bold" href="/">Mur lura għall-paġna ewlenija</a></main>';
+    include 'footer_frontend.php';
+    exit;
+}
 
 // Set dynamic SEO data for the header
 $page_title = $episode['title'] . " | il-hub.com";

@@ -47,8 +47,23 @@ try {
     
     $series = $series_stmt->fetch(PDO::FETCH_ASSOC);
 
+    if ($series && (!$series_slug || $series_slug !== $series['slug'])) {
+        header('Location: /series/' . rawurlencode($series['slug']), true, 301);
+        exit;
+    }
+
+    if (!$series && $series_slug) {
+        $redirect_stmt = $pdo->prepare("SELECT s.slug FROM slug_redirects sr JOIN series s ON s.id = sr.target_id WHERE sr.type = 'series' AND sr.old_slug = ? ORDER BY sr.id ASC LIMIT 1");
+        $redirect_stmt->execute([$series_slug]);
+        $redirect_slug = $redirect_stmt->fetchColumn();
+        if ($redirect_slug) {
+            header('Location: /series/' . rawurlencode($redirect_slug), true, 301);
+            exit;
+        }
+    }
+
     if (!$series) {
-        header("HTTP/1.0 404 Not Found");
+        http_response_code(404);
         echo "<h1 style='color:white;text-align:center;margin-top:50px;'>Series Not Found</h1>";
         exit;
     }
