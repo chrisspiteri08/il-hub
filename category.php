@@ -37,8 +37,21 @@ function getCategoryDescription($tag) {
     return $descriptions[strtolower($tag)] ?? "L-aħjar programmi f'din il-kategorija.";
 }
 
-// 2. Get the tag
-$tag_name = $_GET['tag'] ?? 'politics'; 
+// 2. Resolve a clean category slug while preserving old name-based URLs.
+$tag_input = $_GET['tag'] ?? 'politics';
+$tag_lookup = $pdo->prepare('SELECT name, slug FROM tags WHERE slug = ? OR name = ? LIMIT 1');
+$tag_lookup->execute([$tag_input, $tag_input]);
+$current_tag = $tag_lookup->fetch(PDO::FETCH_ASSOC);
+if (!$current_tag) {
+    http_response_code(404);
+    exit('Category not found.');
+}
+if ($tag_input !== $current_tag['slug']) {
+    header('Location: /category/' . rawurlencode($current_tag['slug']), true, 301);
+    exit;
+}
+$tag_name = $current_tag['name'];
+$tag_slug = $current_tag['slug'];
 $page_description = getCategoryDescription($tag_name); // Set Meta Description
 
 // 3. Pagination
@@ -103,7 +116,7 @@ try {
     $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Navigation Dropdown Data
-    $tags_list = $pdo->query("SELECT id, name FROM tags ORDER BY display_order ASC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $tags_list = $pdo->query("SELECT id, name, slug FROM tags ORDER BY display_order ASC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
     $series_list = $pdo->query("SELECT id, title, slug FROM series ORDER BY title ASC")->fetchAll(PDO::FETCH_ASSOC); 
 
 } catch (PDOException $e) {
@@ -112,7 +125,7 @@ try {
 
 // 5. Include Header
 $page_title = translateTag($tag_name) . " - il-hub.com";
-$canonical_path = '/category/' . rawurlencode($tag_name);
+$canonical_path = '/category/' . rawurlencode($tag_slug);
 include 'header_frontend.php';
 ?>
 

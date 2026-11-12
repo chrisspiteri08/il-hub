@@ -4,6 +4,11 @@ require_once 'config_loader.php';
 $slug = $_GET['slug'] ?? null;
 $id = $_GET['id'] ?? null;
 
+if ($slug === 'test') {
+    header('Location: /', true, 301);
+    exit;
+}
+
 try {
     if ($slug !== null && $slug !== '') {
         $stmt = $pdo->prepare("SELECT ep.*, s.title AS series_title, s.slug AS series_slug FROM episodes ep JOIN series s ON ep.series_id = s.id WHERE ep.slug = ? LIMIT 1");

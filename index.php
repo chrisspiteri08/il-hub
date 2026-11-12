@@ -62,7 +62,7 @@ function getMediaItems($pdo, $category, $exclude_ids = []) {
 
 // 3. Fetch Tags and Series
 try {
-    $tags_list = $pdo->query("SELECT id, name FROM tags ORDER BY display_order ASC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $tags_list = $pdo->query("SELECT id, name, slug FROM tags ORDER BY display_order ASC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
     $series_list = $pdo->query("SELECT id, title, slug FROM series ORDER BY title ASC")->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     die("Error fetching data: " . $e->getMessage());
@@ -192,13 +192,13 @@ include 'header_frontend.php';
             <section id="<?php echo htmlspecialchars($tag['name']); ?>" class="mb-16 content-visibility-auto">
                 
                 <div class="flex justify-between items-end mb-7">
-                    <a href="<?php echo getCategoryUrl($tag['name']); ?>" class="group inline-block">
+                    <a href="<?php echo getCategoryUrl($tag['name'], $tag['slug'] ?? null); ?>" class="group inline-block">
                         <h3 class="text-2xl sm:text-3xl font-black text-white capitalize flex items-center group-hover:text-orange-400 transition-colors">
                             <span class="w-1.5 h-7 bg-orange-500 rounded-full mr-3"></span>
                             <?php echo translateTag($tag['name']); ?> 
                         </h3>
                     </a>
-                    <a href="<?php echo getCategoryUrl($tag['name']); ?>" class="text-sm font-semibold text-orange-400 hover:text-orange-300 transition-colors flex items-center mb-1">
+                    <a href="<?php echo getCategoryUrl($tag['name'], $tag['slug'] ?? null); ?>" class="text-sm font-semibold text-orange-400 hover:text-orange-300 transition-colors flex items-center mb-1">
                         Ara Kollha <span class="ml-1 text-lg">&rarr;</span>
                     </a>
                 </div>

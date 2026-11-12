@@ -40,8 +40,8 @@ if (!function_exists('getSeriesUrl')) {
 
 // Helper to generate Category URL
 if (!function_exists('getCategoryUrl')) {
-    function getCategoryUrl($tag) {
-        return "/category/" . rawurlencode($tag);
+    function getCategoryUrl($tag, $slug = null) {
+        return "/category/" . rawurlencode($slug ?: $tag);
     }
 }
 
@@ -72,7 +72,7 @@ if (empty($analytics_id) || $analytics_id === 'YOUR_ANALYTICS_ID_HERE') {
 // --- FETCH NAV DATA ---
 if (!isset($tags_list)) {
     try {
-        $tags_list = $pdo->query("SELECT id, name FROM tags ORDER BY display_order ASC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $tags_list = $pdo->query("SELECT id, name, slug FROM tags ORDER BY display_order ASC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         $tags_list = [];
     }
@@ -198,7 +198,7 @@ if (!isset($series_list)) {
                         <div id="categoryMenu" class="absolute left-0 top-full mt-2 w-56 bg-gray-900 rounded-xl shadow-2xl py-2 z-50 hidden border border-gray-700">
                             <?php if (!empty($tags_list)): ?>
                                 <?php foreach ($tags_list as $tag): ?>
-                                    <a href="<?php echo getCategoryUrl($tag['name']); ?>" class="block px-5 py-3 text-sm text-gray-300 hover:bg-gray-700/50 hover:text-orange-400 capitalize transition-colors">
+                                    <a href="<?php echo getCategoryUrl($tag['name'], $tag['slug'] ?? null); ?>" class="block px-5 py-3 text-sm text-gray-300 hover:bg-gray-700/50 hover:text-orange-400 capitalize transition-colors">
                                         <?php echo translateTag($tag['name']); ?>
                                     </a>
                                 <?php endforeach; ?>

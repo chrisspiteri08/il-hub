@@ -24,7 +24,7 @@ if (isset($_POST['submit_suggestion'])) {
 
 // 3. Fetch data for the header nav
 try {
-    $tags_list = $pdo->query("SELECT id, name FROM tags ORDER BY display_order ASC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $tags_list = $pdo->query("SELECT id, name, slug FROM tags ORDER BY display_order ASC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
     // FIX: Added 'slug' to this query so the header dropdown works properly
     $series_list = $pdo->query("SELECT id, title, slug FROM series ORDER BY title ASC")->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {

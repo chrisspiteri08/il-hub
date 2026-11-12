@@ -28,8 +28,8 @@ if (!function_exists('getSeriesUrl')) {
     }
 }
 if (!function_exists('getCategoryUrl')) {
-    function getCategoryUrl($tag) {
-        return "/category/" . rawurlencode($tag);
+    function getCategoryUrl($tag, $slug = null) {
+        return "/category/" . rawurlencode($slug ?: $tag);
     }
 }
 
@@ -66,7 +66,7 @@ if (!empty($q)) {
 }
 
 // Header nav data
-$tags_list = $pdo->query("SELECT id, name FROM tags ORDER BY display_order ASC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
+$tags_list = $pdo->query("SELECT id, name, slug FROM tags ORDER BY display_order ASC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
 $series_list = $pdo->query("SELECT id, title, slug FROM series ORDER BY title ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 include 'header_frontend.php';

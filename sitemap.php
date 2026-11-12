@@ -34,7 +34,7 @@ function sitemapLastmod(?string $date): ?string
     return $timestamp === false ? null : gmdate('Y-m-d', $timestamp);
 }
 
-$tags = $pdo->query('SELECT name FROM tags ORDER BY name ASC')->fetchAll(PDO::FETCH_ASSOC);
+$tags = $pdo->query("SELECT slug FROM tags WHERE slug IS NOT NULL AND TRIM(slug) != '' ORDER BY slug ASC")->fetchAll(PDO::FETCH_ASSOC);
 
 $series = $pdo->query(
     "SELECT s.slug,
@@ -49,7 +49,7 @@ $series = $pdo->query(
 $episodes = $pdo->query(
     "SELECT slug, COALESCE(publish_date, published_at, created_at) AS lastmod
      FROM episodes
-     WHERE slug IS NOT NULL AND TRIM(slug) != ''
+     WHERE slug IS NOT NULL AND TRIM(slug) != '' AND slug != 'test'
      ORDER BY id ASC"
 )->fetchAll(PDO::FETCH_ASSOC);
 
@@ -73,7 +73,7 @@ $writeUrl = static function (string $location, ?string $lastmod = null) use ($xm
 $writeUrl($baseUrl . '/');
 
 foreach ($tags as $tag) {
-    $writeUrl(sitemapUrl($baseUrl, 'category', $tag['name']));
+    $writeUrl(sitemapUrl($baseUrl, 'category', $tag['slug']));
 }
 
 foreach ($series as $item) {

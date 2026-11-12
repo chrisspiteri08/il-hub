@@ -2,7 +2,7 @@
 // Ensure we have tags if not already loaded (safety check for pages that might include footer directly)
 if (!isset($tags_list) && isset($pdo)) {
     try {
-        $tags_list = $pdo->query("SELECT id, name FROM tags ORDER BY display_order ASC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
+        $tags_list = $pdo->query("SELECT id, name, slug FROM tags ORDER BY display_order ASC, name ASC")->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) {
         $tags_list = [];
     }
@@ -44,7 +44,7 @@ if (!isset($tags_list) && isset($pdo)) {
                     <?php if (!empty($tags_list)): ?>
                         <?php foreach ($tags_list as $tag): ?>
                             <li>
-                                <a href="<?php echo getCategoryUrl($tag['name']); ?>" class="text-gray-400 hover:text-orange-400 transition-colors text-sm capitalize flex items-center">
+                                <a href="<?php echo getCategoryUrl($tag['name'], $tag['slug'] ?? null); ?>" class="text-gray-400 hover:text-orange-400 transition-colors text-sm capitalize flex items-center">
                                     <span class="text-gray-600 mr-2">#</span><?php echo translateTag($tag['name']); ?>
                                 </a>
                             </li>
