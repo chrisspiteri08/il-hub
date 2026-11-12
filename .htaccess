@@ -1,5 +1,8 @@
 RewriteEngine On
 
+# Public XML sitemap
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
 # 1. Handle Episode Pages (New)
 # Maps /episode/success-bin-numri -> episode.php?slug=success-bin-numri
 RewriteRule ^episode/([^/]+)/?$ episode.php?slug=$1 [L,QSA]

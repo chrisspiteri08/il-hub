@@ -1,79 +1,105 @@
 <?php
-// Set the correct header so browsers/Google treat this as XML
-header("Content-Type: application/xml; charset=utf-8");
 
-// Include database connection
-require_once 'config_loader.php';
+header('Content-Type: application/xml; charset=utf-8');
 
-// Base URL (Change this if you move domains)
-$base_url = "https://il-hub.com";
+$cacheFile = __DIR__ . '/cache/sitemap.xml';
+$cacheLifetime = 3600;
 
-// Start XML Output
-echo '<?xml version="1.0" encoding="UTF-8"?>';
-?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+if (is_file($cacheFile) && (time() - filemtime($cacheFile)) < $cacheLifetime) {
+    readfile($cacheFile);
+    exit;
+}
 
-    <!-- 1. Static Pages -->
-    <url>
-        <loc><?php echo $base_url; ?>/</loc>
-        <changefreq>daily</changefreq>
-        <priority>1.0</priority>
-    </url>
-    <url>
-        <loc><?php echo $base_url; ?>/suggest.php</loc>
-        <changefreq>monthly</changefreq>
-        <priority>0.3</priority>
-    </url>
+require_once __DIR__ . '/config_loader.php';
 
-    <!-- 2. Dynamic Categories -->
-    <?php
-    try {
-        $tags = $pdo->query("SELECT name FROM tags ORDER BY name ASC")->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($tags as $tag) {
-            // Use rawurlencode to handle spaces or special characters safely
-            $loc = $base_url . '/category/' . rawurlencode($tag['name']);
-            echo "
-    <url>
-        <loc>{$loc}</loc>
-        <changefreq>daily</changefreq>
-        <priority>0.8</priority>
-    </url>";
-        }
-    } catch (PDOException $e) {
-        // Silently fail or log error
+$baseUrl = 'https://www.il-hub.com';
+
+function sitemapXmlEscape(string $value): string
+{
+    return htmlspecialchars($value, ENT_XML1 | ENT_QUOTES, 'UTF-8');
+}
+
+function sitemapUrl(string $baseUrl, string $type, string $slug): string
+{
+    return $baseUrl . '/' . $type . '/' . rawurlencode($slug);
+}
+
+function sitemapLastmod(?string $date): ?string
+{
+    if (empty($date)) {
+        return null;
     }
-    ?>
 
-    <!-- 3. Dynamic Series -->
-    <?php
-    try {
-        // FIX: Removed 'updated_at' to prevent errors if column is missing
-        // FIX: Select ID as well for fallback
-        $series_list = $pdo->query("SELECT id, slug FROM series")->fetchAll(PDO::FETCH_ASSOC);
-        
-        foreach ($series_list as $series) {
-            // Use pretty URL if slug exists, otherwise fallback to ID
-            if (!empty($series['slug'])) {
-                $loc = $base_url . '/series/' . htmlspecialchars($series['slug']);
-            } else {
-                $loc = $base_url . '/series.php?series_id=' . $series['id'];
-            }
-            
-            // Use current date as default lastmod
-            $lastmod = date('Y-m-d');
-            
-            echo "
-    <url>
-        <loc>{$loc}</loc>
-        <lastmod>{$lastmod}</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.9</priority>
-    </url>";
-        }
-    } catch (PDOException $e) {
-        // Log the error internally so it doesn't break the XML structure
-        error_log("Sitemap Error: " . $e->getMessage());
+    $timestamp = strtotime($date);
+    return $timestamp === false ? null : gmdate('Y-m-d', $timestamp);
+}
+
+$tags = $pdo->query('SELECT name FROM tags ORDER BY name ASC')->fetchAll(PDO::FETCH_ASSOC);
+
+$series = $pdo->query(
+    "SELECT s.slug,
+            MAX(COALESCE(e.publish_date, e.published_at, e.created_at)) AS lastmod
+     FROM series s
+     LEFT JOIN episodes e ON e.series_id = s.id
+     WHERE s.slug IS NOT NULL AND TRIM(s.slug) != ''
+     GROUP BY s.id, s.slug
+     ORDER BY s.slug ASC"
+)->fetchAll(PDO::FETCH_ASSOC);
+
+$episodes = $pdo->query(
+    "SELECT slug, COALESCE(publish_date, published_at, created_at) AS lastmod
+     FROM episodes
+     WHERE slug IS NOT NULL AND TRIM(slug) != ''
+       AND title NOT IN ('Deleted video', 'Private video')
+     ORDER BY id ASC"
+)->fetchAll(PDO::FETCH_ASSOC);
+
+$xml = new XMLWriter();
+$xml->openMemory();
+$xml->setIndent(true);
+$xml->setIndentString('  ');
+$xml->startDocument('1.0', 'UTF-8');
+$xml->startElement('urlset');
+$xml->writeAttribute('xmlns', 'http://www.sitemaps.org/schemas/sitemap/0.9');
+
+$writeUrl = static function (string $location, ?string $lastmod = null) use ($xml): void {
+    $xml->startElement('url');
+    $xml->writeElement('loc', sitemapXmlEscape($location));
+    if ($lastmod !== null) {
+        $xml->writeElement('lastmod', sitemapXmlEscape($lastmod));
     }
-    ?>
+    $xml->endElement();
+};
 
-</urlset>
+$writeUrl($baseUrl . '/');
+
+foreach ($tags as $tag) {
+    $writeUrl(sitemapUrl($baseUrl, 'category', $tag['name']));
+}
+
+foreach ($series as $item) {
+    $writeUrl(
+        sitemapUrl($baseUrl, 'series', $item['slug']),
+        sitemapLastmod($item['lastmod'])
+    );
+}
+
+foreach ($episodes as $episode) {
+    $writeUrl(
+        sitemapUrl($baseUrl, 'episode', $episode['slug']),
+        sitemapLastmod($episode['lastmod'])
+    );
+}
+
+$xml->endElement();
+$xml->endDocument();
+$output = $xml->outputMemory();
+
+if (is_dir(dirname($cacheFile)) && is_writable(dirname($cacheFile))) {
+    $temporaryCache = $cacheFile . '.tmp.' . getmypid();
+    if (file_put_contents($temporaryCache, $output, LOCK_EX) !== false) {
+        rename($temporaryCache, $cacheFile);
+    }
+}
+
+echo $output;
