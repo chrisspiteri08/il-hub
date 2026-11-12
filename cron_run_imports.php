@@ -272,7 +272,7 @@ try {
             echo "Running specifically for Job IDs: " . implode(',', $requested_ids) . "\n";
         }
     } else {
-        $jobs_filter = "AND (ai.last_checked_at IS NULL OR ai.last_checked_at < (NOW() - INTERVAL 1 HOUR))";
+        $jobs_filter = "AND (ai.last_checked_at IS NULL OR TIMESTAMPDIFF(HOUR, ai.last_checked_at, NOW()) >= COALESCE(ai.check_interval_hours, 1))";
         echo "Running standard scheduled check.\n";
     }
 

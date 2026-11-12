@@ -7,6 +7,7 @@ if (!isset($_SESSION['loggedin']) || $_SESSION['loggedin'] !== true) {
 
 // --- NEW: Use config_loader ---
 require_once 'config_loader.php';
+require_once 'automation_helpers.php';
 
 // Get the cron secret key for the "Run Now" button
 $cron_secret_key = $settings['cron_secret_key'];
@@ -18,39 +19,18 @@ if (isset($_POST['add_job'])) {
     $tag_ids = $_POST['tag_ids'] ?? [];
     $job_type = $_POST['job_type'] ?? '';
     
-    // Default validation
-    $validation_passed = true;
-    if (empty($tag_ids) || empty($_POST['series_id']) || empty($_POST['import_url_or_id']) || empty($job_type)) {
-        $validation_passed = false;
-    }
-    
-    if (!$validation_passed) {
-        $message = '<div class="bg-red-600 p-4 rounded-lg text-white">Error: You must fill out all required fields.</div>';
-    } else {
-        try {
-            $pdo->beginTransaction();
-            
-            // Insert into the main table
-            $stmt = $pdo->prepare("INSERT INTO automated_imports (series_id, job_type, import_url_or_id) VALUES (?, ?, ?)");
-            $stmt->execute([
-                $_POST['series_id'],
-                $job_type,
-                $_POST['import_url_or_id']
-            ]);
-            $new_import_id = $pdo->lastInsertId();
-
-            // Insert into the tags junction table
-            $tag_stmt = $pdo->prepare("INSERT INTO import_tags (import_id, tag_id) VALUES (?, ?)");
-            foreach ($tag_ids as $tag_id) {
-                $tag_stmt->execute([$new_import_id, $tag_id]);
-            }
-            
-            $pdo->commit();
-            $message = '<div class="bg-green-600 p-4 rounded-lg text-white">New automation job added successfully!</div>';
-        } catch (PDOException $e) {
-            $pdo->rollBack();
-            $message = '<div class="bg-red-600 p-4 rounded-lg text-white">Error: ' . $e->getMessage() . '</div>';
-        }
+    try {
+        createAutomation(
+            $pdo,
+            (int) ($_POST['series_id'] ?? 0),
+            $job_type,
+            (string) ($_POST['import_url_or_id'] ?? ''),
+            $tag_ids,
+            (int) ($_POST['check_interval_hours'] ?? 1)
+        );
+        $message = '<div class="bg-green-600 p-4 rounded-lg text-white">New automation job added successfully!</div>';
+    } catch (Throwable $e) {
+        $message = '<div class="bg-red-600 p-4 rounded-lg text-white">Error: ' . htmlspecialchars($e->getMessage()) . '</div>';
     }
 }
 
