@@ -231,7 +231,7 @@ include 'header_frontend.php';
                     <a href="<?php echo htmlspecialchars($item['media_url']); ?>" target="_blank" class="block relative aspect-video overflow-hidden">
                         <img class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" src="<?php echo htmlspecialchars($item['thumbnail_url']); ?>" alt="Cover art">
                         <?php if ($is_coming_soon): ?>
-                            <div class="absolute top-3 right-3 bg-yellow-500 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg z-10 border border-yellow-400">Coming Soon</div>
+                            <div class="absolute top-3 right-3 bg-brand-red text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg z-10 border border-brand-red">Coming Soon</div>
                         <?php endif; ?>
                         <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center backdrop-blur-[2px]">
                             <div class="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center shadow-xl transform scale-75 group-hover:scale-100 transition-transform duration-300">

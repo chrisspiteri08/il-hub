@@ -172,15 +172,17 @@ if (!isset($series_list)) {
     
     <style>
         body { font-family: 'Inter', sans-serif; background: #000000; color: white; }
-        a { color: #FFDE5B; text-decoration: none; }
+        a { color: #F45859; text-decoration: none; }
+        a:hover { color: #F7797A; }
+        ::selection { background: #F45859; color: #000000; }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #111827; }
-        ::-webkit-scrollbar-thumb { background: #374151; border-radius: 8px; }
-        ::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+        ::-webkit-scrollbar-track { background: #0b0b0b; }
+        ::-webkit-scrollbar-thumb { background: #F45859; border-radius: 8px; }
+        ::-webkit-scrollbar-thumb:hover { background: #F7797A; }
         .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .line-clamp-3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
         .sub-nav::-webkit-scrollbar { height: 4px; }
-        .sub-nav::-webkit-scrollbar-thumb { background: #FFDE5B; border-radius: 4px; }
+        .sub-nav::-webkit-scrollbar-thumb { background: #F45859; border-radius: 4px; }
         .sub-nav::-webkit-scrollbar-track { background: transparent; }
         body { padding-bottom: env(safe-area-inset-bottom); }
         
@@ -194,7 +196,7 @@ if (!isset($series_list)) {
         .bg-gray-700 { background-color: #2A2926 !important; }
         .hub-surface { background: linear-gradient(145deg, rgba(33,32,30,.98), rgba(0,0,0,.9)); }
         .hub-card { background: rgba(33,32,30,.96); border-color: rgba(255,255,255,.1); }
-        .hub-card:hover { transform: translateY(-4px); border-color: rgba(255,222,91,.62); box-shadow: 0 22px 55px rgba(0,0,0,.45); }
+        .hub-card:hover { transform: translateY(-4px); border-color: rgba(244,88,89,.62); box-shadow: 0 22px 55px rgba(0,0,0,.45); }
     </style>
 </head>
 <body class="antialiased min-h-screen flex flex-col text-gray-200">

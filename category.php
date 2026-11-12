@@ -203,11 +203,11 @@ include 'header_frontend.php';
                         </div>
 
                         <?php if ($is_coming_soon): ?>
-                            <div class="absolute top-3 right-3 bg-yellow-500 text-yellow-900 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg z-20 border border-yellow-400">
+                            <div class="absolute top-3 right-3 bg-brand-red text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg z-20 border border-brand-red">
                                 Dalwaqt
                             </div>
                         <?php elseif ($is_new): ?>
-                            <div class="absolute top-3 right-3 bg-brand-coral text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg z-20 border border-brand-coral animate-pulse">
+                            <div class="absolute top-3 right-3 bg-brand-red text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg z-20 border border-brand-red animate-pulse">
                                 Ġdid
                             </div>
                         <?php endif; ?>

@@ -132,7 +132,7 @@ include 'header_frontend.php';
                     <span class="w-2 h-2 rounded-full bg-orange-400 animate-pulse"></span> Il-media Maltija, f'post wieħed
                 </div>
                 <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black text-white mb-6 tracking-[-.045em] leading-[1.02]">
-                    Isma'. Ara. Skopri.<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-orange-300 via-orange-500 to-red-500">Kollox Malti.</span>
+                    Isma'. Ara. Skopri.<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-white via-[#F7797A] to-[#F45859]">Kollox Malti.</span>
                 </h1>
                 <p class="text-lg sm:text-xl text-gray-300 max-w-2xl leading-relaxed mb-8">
                     Podcasts, diskussjonijiet u programmi minn madwar il-gżejjer—organizzati biex issib dak li jinteressak malajr.
@@ -226,9 +226,9 @@ include 'header_frontend.php';
                                 </div>
 
                                 <?php if ($is_coming_soon): ?>
-                                    <div class="absolute top-3 right-3 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-lg z-20">Dalwaqt</div>
+                                    <div class="absolute top-3 right-3 bg-brand-red text-white text-xs font-bold px-2 py-1 rounded-md uppercase tracking-wider shadow-lg z-20">Dalwaqt</div>
                                 <?php elseif ($is_new): ?>
-                                    <div class="absolute top-3 right-3 bg-brand-coral text-white text-xs font-bold px-3 py-1 rounded-md uppercase tracking-wider shadow-lg z-20 border border-brand-coral animate-pulse">Ġdid</div>
+                                    <div class="absolute top-3 right-3 bg-brand-red text-white text-xs font-bold px-3 py-1 rounded-md uppercase tracking-wider shadow-lg z-20 border border-brand-red animate-pulse">Ġdid</div>
                                 <?php endif; ?>
                             </a>
                             <div class="p-5 flex flex-col flex-grow">
