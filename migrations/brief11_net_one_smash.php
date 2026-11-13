@@ -53,7 +53,32 @@ foreach ($netShows as [$title, $sourceId]) {
     $tagIds = [$podcast];
     if (in_array($sourceId, [37,362], true) && !empty($tags['sports'])) $tagIds[] = $tags['sports'];
     if (in_array($sourceId, [15,27,33,107,195,196,234], true) && !empty($tags['politics'])) $tagIds[] = $tags['politics'];
-    $seriesId = brief11Series($pdo, $title, make_slug($title), $description, $url, $image);
+    if ($sourceId === 15) {
+        $legacyNetLive = $pdo->query("SELECT id FROM series WHERE slug = 'netlive' ORDER BY id LIMIT 1")->fetchColumn();
+        if ($legacyNetLive) {
+            $seriesId = (int) $legacyNetLive;
+            $pdo->prepare('UPDATE series SET main_url = ?, description = ?, series_image = ? WHERE id = ?')
+                ->execute([$url, $description, $image, $seriesId]);
+
+            // Brief 11 originally used NET's spaced title and could have made an
+            // empty duplicate before the legacy slug match was added.
+            $duplicates = $pdo->prepare('SELECT id FROM series WHERE main_url = ? AND id != ?');
+            $duplicates->execute([$url, $seriesId]);
+            foreach ($duplicates->fetchAll(PDO::FETCH_COLUMN) as $duplicateId) {
+                $count = $pdo->prepare('SELECT COUNT(*) FROM episodes WHERE series_id = ?');
+                $count->execute([$duplicateId]);
+                if ((int) $count->fetchColumn() === 0) {
+                    $pdo->prepare('DELETE it FROM import_tags it JOIN automated_imports ai ON ai.id = it.import_id WHERE ai.series_id = ?')->execute([$duplicateId]);
+                    $pdo->prepare('DELETE FROM automated_imports WHERE series_id = ?')->execute([$duplicateId]);
+                    $pdo->prepare('DELETE FROM series WHERE id = ?')->execute([$duplicateId]);
+                }
+            }
+        } else {
+            $seriesId = brief11Series($pdo, $title, 'netlive', $description, $url, $image);
+        }
+    } else {
+        $seriesId = brief11Series($pdo, $title, make_slug($title), $description, $url, $image);
+    }
 
     if ($sourceId === 15) {
         $findOld = $pdo->prepare("SELECT id FROM automated_imports WHERE series_id = ? AND job_type = 'youtube' ORDER BY id LIMIT 1");
