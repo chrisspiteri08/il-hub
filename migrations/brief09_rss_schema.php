@@ -8,9 +8,11 @@ require dirname(__DIR__) . '/db_config.php';
 
 function brief09ColumnExists(PDO $pdo, string $column): bool
 {
-    $stmt = $pdo->prepare("SHOW COLUMNS FROM episodes LIKE ?");
-    $stmt->execute([$column]);
-    return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $pdo->prepare(
+        'SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
+    );
+    $stmt->execute(['episodes', $column]);
+    return (int) $stmt->fetchColumn() > 0;
 }
 
 if (!brief09ColumnExists($pdo, 'external_id')) {
