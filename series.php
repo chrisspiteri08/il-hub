@@ -127,7 +127,7 @@ try {
 
     // 6. Fetch Episodes
     $query = "
-        SELECT title AS episode_title, description, media_url, thumbnail_url, platform, publish_date
+        SELECT id, slug, title AS episode_title, description, media_url, thumbnail_url, platform, publish_date
         FROM episodes
         WHERE series_id = :series_id AND title != 'Deleted video' AND title != 'Private video'
         ORDER BY publish_date DESC
@@ -225,10 +225,15 @@ include 'header_frontend.php';
                 </div>
             <?php else: ?>
                 <?php foreach ($items as $item): ?>
-                <?php $is_coming_soon = !empty($item['publish_date']) && strtotime($item['publish_date']) > time(); ?>
+                <?php
+                    $is_coming_soon = !empty($item['publish_date']) && strtotime($item['publish_date']) > time();
+                    $episode_url = (!empty($item['slug']) || !empty($item['id']))
+                        ? getEpisodeUrl($item['slug'] ?? '', $item['id'] ?? 0)
+                        : $item['media_url'];
+                ?>
                 
                 <div class="bg-gray-800 rounded-2xl shadow-lg overflow-hidden flex flex-col hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-gray-700 group h-full">
-                    <a href="<?php echo htmlspecialchars($item['media_url']); ?>" target="_blank" class="block relative aspect-video overflow-hidden">
+                    <a href="<?php echo htmlspecialchars($episode_url); ?>" class="block relative aspect-video overflow-hidden">
                         <img class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" src="<?php echo htmlspecialchars($item['thumbnail_url']); ?>" alt="Cover art">
                         <?php if ($is_coming_soon): ?>
                             <div class="absolute top-3 right-3 bg-brand-red text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow-lg z-10 border border-brand-red">Coming Soon</div>
@@ -247,14 +252,14 @@ include 'header_frontend.php';
                             <?php endif; ?>
                         </div>
                         <h4 class="text-xl font-bold text-white mb-3 leading-tight line-clamp-2 group-hover:text-orange-400 transition-colors">
-                            <a href="<?php echo htmlspecialchars($item['media_url']); ?>" target="_blank"><?php echo htmlspecialchars($item['episode_title']); ?></a>
+                            <a href="<?php echo htmlspecialchars($episode_url); ?>"><?php echo htmlspecialchars($item['episode_title']); ?></a>
                         </h4>
                         <p class="text-gray-400 text-sm mb-6 flex-grow line-clamp-3 leading-relaxed">
                             <?php echo mb_strimwidth(htmlspecialchars($item['description']), 0, 120, "..."); ?>
                         </p>
                         <div class="mt-auto pt-4 border-t border-gray-700/50 flex items-center justify-between">
                             <span class="text-xs text-gray-500 font-medium"></span>
-                            <a href="<?php echo htmlspecialchars($item['media_url']); ?>" target="_blank" class="text-sm font-semibold text-white hover:text-orange-400 transition-colors flex items-center">
+                            <a href="<?php echo htmlspecialchars($episode_url); ?>" class="text-sm font-semibold text-white hover:text-orange-400 transition-colors flex items-center">
                                 Ara Issa <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </a>
                         </div>

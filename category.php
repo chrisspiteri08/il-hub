@@ -80,6 +80,7 @@ try {
     $query = "
         SELECT 
             ep.id, 
+            ep.slug AS episode_slug,
             ep.title AS episode_title, 
             ep.description, 
             ep.media_url, 
@@ -190,10 +191,13 @@ include 'header_frontend.php';
                     $now = time();
                     $is_coming_soon = $pub_timestamp > $now;
                     $is_new = !$is_coming_soon && ($pub_timestamp > ($now - 86400));
+                    $episode_url = (!empty($item['episode_slug']) || !empty($item['id']))
+                        ? getEpisodeUrl($item['episode_slug'] ?? '', $item['id'] ?? 0)
+                        : $item['media_url'];
                 ?>
                 
                 <div class="bg-gray-800 rounded-2xl shadow-lg overflow-hidden flex flex-col hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-gray-700 group h-full">
-                    <a href="<?php echo htmlspecialchars($item['media_url']); ?>" target="_blank" class="block relative aspect-video overflow-hidden">
+                    <a href="<?php echo htmlspecialchars($episode_url); ?>" class="block relative aspect-video overflow-hidden">
                         <img loading="lazy" class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" src="<?php echo htmlspecialchars($item['thumbnail_url']); ?>" alt="Cover art">
                         
                         <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
@@ -224,14 +228,14 @@ include 'header_frontend.php';
                             <?php endif; ?>
                         </div>
                         <h4 class="text-xl font-bold text-white mb-3 leading-tight line-clamp-2 group-hover:text-orange-400 transition-colors">
-                            <a href="<?php echo htmlspecialchars($item['media_url']); ?>" target="_blank"><?php echo htmlspecialchars($item['episode_title']); ?></a>
+                            <a href="<?php echo htmlspecialchars($episode_url); ?>"><?php echo htmlspecialchars($item['episode_title']); ?></a>
                         </h4>
                         <p class="text-gray-400 text-sm mb-6 flex-grow line-clamp-3 leading-relaxed">
                             <?php echo mb_strimwidth(htmlspecialchars($item['description']), 0, 120, "..."); ?>
                         </p>
                         <div class="mt-auto pt-4 border-t border-gray-700/50 flex items-center justify-between">
                             <span class="text-xs text-gray-500 font-medium"><?php echo htmlspecialchars($item['platform']); ?></span>
-                            <a href="<?php echo htmlspecialchars($item['media_url']); ?>" target="_blank" class="text-sm font-semibold text-white hover:text-orange-400 transition-colors flex items-center">
+                            <a href="<?php echo htmlspecialchars($episode_url); ?>" class="text-sm font-semibold text-white hover:text-orange-400 transition-colors flex items-center">
                                 Ara Issa <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </a>
                         </div>
