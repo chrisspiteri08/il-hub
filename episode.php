@@ -1,5 +1,6 @@
 <?php
 require_once 'config_loader.php';
+require_once 'media_url_helpers.php';
 
 $slug = $_GET['slug'] ?? null;
 $id = $_GET['id'] ?? null;
@@ -86,13 +87,19 @@ function getYoutubeId($url) {
     <!-- Video Player Section -->
     <div class="bg-gray-900 rounded-3xl overflow-hidden shadow-2xl mb-10 border border-gray-800">
         <?php 
-            $yt_id = getYoutubeId($episode['media_url']); 
-            $is_tvmi = strpos($episode['media_url'], 'tvmi.mt') !== false;
-            $audio_source = trim((string) ($episode['audio_url'] ?? ''));
-            if ($audio_source === '' && ($episode['platform'] ?? '') === 'Podcast') {
-                $audio_source = (string) $episode['media_url'];
+            $media_source = isHttpMediaUrl($episode['media_url'] ?? null) ? (string) $episode['media_url'] : '';
+            $yt_id = $media_source !== '' ? getYoutubeId($media_source) : null;
+            $is_tvmi = $media_source !== '' && strpos($media_source, 'tvmi.mt') !== false;
+            $media_kind = strtolower((string) ($episode['media_kind'] ?? ''));
+            if ($media_kind === '' && $media_source !== '') {
+                $media_kind = podcastMediaKind('', $media_source) ?? '';
             }
-            $is_audio = !$yt_id && !$is_tvmi && $audio_source !== '';
+            $audio_source = isHttpMediaUrl($episode['audio_url'] ?? null) ? (string) $episode['audio_url'] : '';
+            if ($audio_source === '' && ($episode['platform'] ?? '') === 'Podcast' && $media_kind !== 'video') {
+                $audio_source = $media_source;
+            }
+            $is_video = !$yt_id && !$is_tvmi && $media_kind === 'video' && $media_source !== '';
+            $is_audio = !$yt_id && !$is_tvmi && !$is_video && $audio_source !== '';
         ?>
         <div class="<?php echo $is_audio ? 'w-full bg-black p-6 md:p-10' : 'aspect-video w-full bg-black'; ?>">
             <?php if ($yt_id): ?>
@@ -108,6 +115,13 @@ function getYoutubeId($url) {
                         Ara fuq TVMi
                     </a>
                 </div>
+
+            <?php elseif ($is_video): ?>
+                <!-- Podcast video player -->
+                <video controls preload="none" playsinline class="h-full w-full bg-black"<?php if (!empty($episode['thumbnail_url'])): ?> poster="<?php echo htmlspecialchars($episode['thumbnail_url']); ?>"<?php endif; ?>>
+                    <source src="<?php echo htmlspecialchars($media_source); ?>">
+                    Il-browser tiegħek ma jappoġġjax il-vidjow HTML5.
+                </video>
 
             <?php elseif ($is_audio): ?>
                 <!-- Podcast audio player -->
@@ -128,9 +142,11 @@ function getYoutubeId($url) {
                 <div class="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-800 px-6 text-center">
                     <svg class="w-16 h-16 mb-4 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 00-2 2z"></path></svg>
                     <p class="mb-5 font-semibold text-lg text-white">Dan l-episodju jinsab fuq sit ieħor</p>
-                    <a href="<?php echo htmlspecialchars($episode['media_url']); ?>" target="_blank" rel="noopener noreferrer" class="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg">
-                        Iftaħ fis-Sors
-                    </a>
+                    <?php if ($media_source !== ''): ?>
+                        <a href="<?php echo htmlspecialchars($media_source); ?>" target="_blank" rel="noopener noreferrer" class="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg">
+                            Iftaħ fis-Sors
+                        </a>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         </div>
