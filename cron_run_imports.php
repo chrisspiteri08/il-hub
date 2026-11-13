@@ -12,6 +12,7 @@ ob_start();
 // --- NEW: Use config_loader ---
 require_once 'config_loader.php';
 require_once 'slug_helpers.php';
+require_once 'media_url_helpers.php';
 
 // --- CONFIGURATION (Now from $settings) ---
 $secret_key = $settings['cron_secret_key'];
@@ -336,7 +337,7 @@ try {
 
     // Prepare reusable database statements
     $insert_stmt = $pdo->prepare("INSERT INTO episodes (series_id, title, description, media_url, thumbnail_url, platform, publish_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
-    $insert_rss_stmt = $pdo->prepare("INSERT INTO episodes (series_id, title, description, media_url, external_id, audio_url, duration_seconds, thumbnail_url, platform, publish_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Podcast', ?)");
+    $insert_rss_stmt = $pdo->prepare("INSERT INTO episodes (series_id, title, description, media_url, external_id, audio_url, duration_seconds, media_kind, thumbnail_url, platform, publish_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Podcast', ?)");
     $check_stmt = $pdo->prepare("SELECT id FROM episodes WHERE media_url = ?");
     $check_rss_stmt = $pdo->prepare("SELECT id FROM episodes WHERE (external_id IS NOT NULL AND external_id = ?) OR audio_url = ? OR media_url = ? LIMIT 1");
     $tag_stmt = $pdo->prepare("INSERT INTO episode_tags (episode_id, tag_id) VALUES (?, ?)");
@@ -490,11 +491,9 @@ try {
                                     $has_short_hint = preg_match('/#shorts?\b/i', $short_text) === 1;
                                     if ($is_children_job && ($seconds < 60 || $has_short_hint)) {
                                         $job_skipped_shorts++;
-                                        echo "Skipped (Child Short - {$seconds}s): $title\n";
                                         continue;
                                     } elseif ($seconds < $min_duration_seconds) {
                                         $job_skipped_duration++; 
-                                        echo "Skipped (Too Short - {$seconds}s): $title\n";
                                         continue; 
                                     }
                                 } catch (Exception $e) {}
@@ -504,7 +503,6 @@ try {
                             $check_stmt->execute([$media_url]); 
                             $existing_id = $check_stmt->fetchColumn(); 
                             if ($existing_id) { 
-                                echo "Skipping (Existing): ID #$existing_id for URL: $media_url\n";
                                 $job_skipped_existing++; 
                                 continue; 
                             }
@@ -590,30 +588,38 @@ try {
                         $description = trim((string) $node->children($node_namespaces['itunes'])->summary);
                     }
 
-                    $audio_url = '';
+                    $media_url = '';
+                    $media_kind = null;
                     if ($is_atom) {
                         foreach ($node->link as $link) {
                             $attributes = $link->attributes();
                             $rel = strtolower((string) ($attributes['rel'] ?? ''));
                             $type = strtolower((string) ($attributes['type'] ?? ''));
-                            if ($rel === 'enclosure' && ($type === '' || strpos($type, 'audio/') === 0)) {
-                                $audio_url = trim((string) ($attributes['href'] ?? ''));
-                                if ($audio_url !== '') break;
+                            if ($rel === 'enclosure') {
+                                $candidate = trim((string) ($attributes['href'] ?? ''));
+                                $kind = podcastMediaKind($type, $candidate);
+                                if ($kind && isHttpMediaUrl($candidate)) {
+                                    $media_url = $candidate;
+                                    $media_kind = $kind;
+                                    break;
+                                }
                             }
                         }
                     } else {
                         foreach ($node->enclosure as $enclosure) {
                             $attributes = $enclosure->attributes();
                             $type = strtolower((string) ($attributes['type'] ?? ''));
-                            if ($type === '' || strpos($type, 'audio/') === 0) {
-                                $audio_url = trim((string) ($attributes['url'] ?? ''));
-                                if ($audio_url !== '') break;
+                            $candidate = trim((string) ($attributes['url'] ?? ''));
+                            $kind = podcastMediaKind($type, $candidate);
+                            if ($kind && isHttpMediaUrl($candidate)) {
+                                $media_url = $candidate;
+                                $media_kind = $kind;
+                                break;
                             }
                         }
                     }
 
-                    if ($title === '' || $audio_url === '') {
-                        echo 'Skipping (Missing ' . ($title === '' ? 'title' : 'audio enclosure') . "): " . ($title ?: '[untitled]') . "\n";
+                    if ($title === '' || $media_url === '' || !$media_kind) {
                         $job_skipped_junk++;
                         continue;
                     }
@@ -629,7 +635,8 @@ try {
                         'title' => $title,
                         'external_id' => $external_id !== '' ? $external_id : null,
                         'description' => $description,
-                        'audio_url' => $audio_url,
+                        'media_url' => $media_url,
+                        'media_kind' => $media_kind,
                         'publish_date' => $publish_date,
                         'timestamp' => $timestamp ?: 0,
                         'duration' => $duration,
@@ -643,17 +650,17 @@ try {
                         echo "Reached podcast RSS per-run cap of 50 new episodes.\n";
                         break;
                     }
-                    $check_rss_stmt->execute([$item['external_id'], $item['audio_url'], $item['audio_url']]);
+                    $check_rss_stmt->execute([$item['external_id'], $item['media_url'], $item['media_url']]);
                     $existing_id = $check_rss_stmt->fetchColumn();
                     if ($existing_id) {
-                        echo "Skipping (Existing): ID #$existing_id for URL: {$item['audio_url']}\n";
                         $job_skipped_existing++;
                         continue;
                     }
 
                     $insert_rss_stmt->execute([
-                        $series_id, $item['title'], $item['description'], $item['audio_url'],
-                        $item['external_id'], $item['audio_url'], $item['duration'], $item['image'], $item['publish_date'],
+                        $series_id, $item['title'], $item['description'], $item['media_url'],
+                        $item['external_id'], $item['media_kind'] === 'audio' ? $item['media_url'] : null,
+                        $item['duration'], $item['media_kind'], $item['image'], $item['publish_date'],
                     ]);
                     $new_episode_id = $pdo->lastInsertId();
                     updateSlug($pdo, $new_episode_id, $item['title'], $item['publish_date']);
@@ -661,7 +668,7 @@ try {
                     $job_added_count++;
                     $newly_added_episodes[] = [
                         'title' => $item['title'], 'series_title' => $series_title,
-                        'url' => $item['audio_url'], 'thumbnail_url' => $item['image'],
+                        'url' => $item['media_url'], 'thumbnail_url' => $item['image'],
                         'series_id' => $series_db_id, 'series_slug' => $series_slug,
                         'is_music' => $is_music_job,
                     ];
@@ -705,7 +712,6 @@ try {
                     $check_stmt->execute([$media_url]);
                     $existing_id = $check_stmt->fetchColumn(); 
                     if ($existing_id) { 
-                        echo "Skipping (Existing): ID #$existing_id for URL: $media_url\n";
                         $job_skipped_existing++; 
                         continue; 
                     }
@@ -718,7 +724,6 @@ try {
                          continue;
                     }
                     if (empty($details['title'])) {
-                         echo "Skipping (Empty Title) for: $media_url\n";
                          continue;
                     }
 
