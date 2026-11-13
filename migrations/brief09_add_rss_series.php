@@ -30,7 +30,7 @@ $shows = [
  ['il-Podkast Uncensored','il-podkast-uncensored','https://anchor.fm/s/58ba3260/podcast/rss','Konversazzjonijiet diretti u bla ċensura bil-Malti.',[$podcast]],
  ['Treasures from Malta','treasures-from-malta','https://rss.buzzsprout.com/1758509.rss','Discovering Malta’s people, places, heritage and hidden stories.',[$podcast,$tagMap['lifestyle']]],
  ['KwartaKtieb','kwartaktieb','https://anchor.fm/s/2260959c/podcast/rss','Podcast qasir bil-Malti dwar kotba, qari u letteratura.',[$podcast,$tagMap['lifestyle']]],
- ['CoROM cast','corom-cast','https://anchor.fm/s/b008e28c/podcast/rss','Conversations and research from the community of researchers on Malta.',[$podcast]],
+ ['CoROM cast','corom-cast','https://anchor.fm/s/b008e28c/podcast/rss','College of Remote and Offshore Medicine (Malta) — conversations on remote, offshore and expedition medicine.',[$podcast]],
  ['Markapaġna','markapagna','https://anchor.fm/s/b125185c/podcast/rss','Podcast bil-Malti dwar kotba, awturi u l-kultura tal-qari.',[$podcast,$tagMap['lifestyle']]],
  ['Malta en español','malta-en-espanol','https://anchor.fm/s/fa24d290/podcast/rss','Historias, consejos y conversaciones sobre la vida en Malta.',[$podcast,$tagMap['lifestyle']]],
  ['African Media Malta Podcast','african-media-malta','https://africanmediamalta-podcast.podomatic.com/rss2.xml','Stories and conversations from African communities living in Malta.',[$podcast,$tagMap['taghrif-socjali']]],
