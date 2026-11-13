@@ -137,7 +137,7 @@ function postToFacebook($message, $image_url, $page_id, $page_token) {
 /**
  * Helper function to fetch URL content via cURL
  */
-function fetchUrlContent($url) {
+function fetchUrlContent($url, $timeout = 30) {
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
@@ -146,6 +146,8 @@ function fetchUrlContent($url) {
     curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
     curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false);
     curl_setopt($ch, CURLOPT_REFERER, "https://il-hub.com");
+    curl_setopt($ch, CURLOPT_TIMEOUT, max(1, (int) $timeout));
+    curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, min(10, max(1, (int) $timeout)));
     
     // --- Cookie Jar for Session Consistency ---
     $cookie_file = sys_get_temp_dir() . '/ilhub_cookies.txt';
@@ -168,6 +170,30 @@ function fetchUrlContent($url) {
     $html = curl_exec($ch);
     curl_close($ch);
     return $html;
+}
+
+function podcastDurationToSeconds($duration) {
+    $duration = trim((string) $duration);
+    if ($duration === '') return null;
+    if (ctype_digit($duration)) return (int) $duration;
+    $parts = array_map('intval', explode(':', $duration));
+    if (count($parts) === 3) return $parts[0] * 3600 + $parts[1] * 60 + $parts[2];
+    if (count($parts) === 2) return $parts[0] * 60 + $parts[1];
+    return null;
+}
+
+function podcastImageUrl($node, array $namespaces) {
+    if (!empty($namespaces['itunes'])) {
+        $image = $node->children($namespaces['itunes'])->image;
+        $attributes = $image ? $image->attributes() : null;
+        if ($attributes && !empty($attributes['href'])) return (string) $attributes['href'];
+    }
+    if (!empty($namespaces['media'])) {
+        $thumbnail = $node->children($namespaces['media'])->thumbnail;
+        $attributes = $thumbnail ? $thumbnail->attributes() : null;
+        if ($attributes && !empty($attributes['url'])) return (string) $attributes['url'];
+    }
+    return null;
 }
 
 function scrapeEpisodePage($episode_url) {
@@ -286,7 +312,8 @@ try {
     }
 
     $jobs = $pdo->prepare("
-        SELECT ai.*, s.title AS series_title, s.slug AS series_slug, s.id AS series_db_id, GROUP_CONCAT(it.tag_id) AS tag_ids
+        SELECT ai.*, s.title AS series_title, s.slug AS series_slug, s.id AS series_db_id,
+               s.series_image, GROUP_CONCAT(it.tag_id) AS tag_ids
         FROM automated_imports AS ai
         JOIN series AS s ON ai.series_id = s.id
         JOIN import_tags AS it ON ai.id = it.import_id
@@ -308,7 +335,9 @@ try {
 
     // Prepare reusable database statements
     $insert_stmt = $pdo->prepare("INSERT INTO episodes (series_id, title, description, media_url, thumbnail_url, platform, publish_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $insert_rss_stmt = $pdo->prepare("INSERT INTO episodes (series_id, title, description, media_url, external_id, audio_url, duration_seconds, thumbnail_url, platform, publish_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Podcast', ?)");
     $check_stmt = $pdo->prepare("SELECT id FROM episodes WHERE media_url = ?");
+    $check_rss_stmt = $pdo->prepare("SELECT id FROM episodes WHERE (external_id IS NOT NULL AND external_id = ?) OR audio_url = ? OR media_url = ? LIMIT 1");
     $tag_stmt = $pdo->prepare("INSERT INTO episode_tags (episode_id, tag_id) VALUES (?, ?)");
     $update_job_stmt = $pdo->prepare("UPDATE automated_imports SET last_checked_at = NOW() WHERE id = ?");
 
@@ -514,6 +543,126 @@ try {
                 }
                 #endregion
             
+            } elseif ($job_type == 'podcast_rss') {
+                #region Podcast RSS/Atom Logic
+                $feed_xml = fetchUrlContent($import_url, 20);
+                if (!$feed_xml || strlen($feed_xml) < 50) {
+                    throw new Exception('Could not fetch podcast feed (blocked or empty).');
+                }
+
+                $previous_libxml = libxml_use_internal_errors(true);
+                $feed = simplexml_load_string($feed_xml, 'SimpleXMLElement', LIBXML_NOCDATA);
+                $xml_errors = libxml_get_errors();
+                libxml_clear_errors();
+                libxml_use_internal_errors($previous_libxml);
+                if (!$feed) {
+                    $detail = !empty($xml_errors) ? trim($xml_errors[0]->message) : 'invalid XML';
+                    throw new Exception('Could not parse podcast feed: ' . $detail);
+                }
+
+                $namespaces = $feed->getNamespaces(true);
+                $is_atom = strtolower($feed->getName()) === 'feed';
+                $channel = $is_atom ? $feed : $feed->channel;
+                $nodes = $is_atom ? $feed->entry : $channel->item;
+                $channel_image = podcastImageUrl($channel, $namespaces);
+                if (!$channel_image && !$is_atom && !empty($channel->image->url)) {
+                    $channel_image = trim((string) $channel->image->url);
+                }
+                $fallback_image = $channel_image ?: ($job['series_image'] ?: 'https://placehold.co/600x400/21201E/F45859?text=Podcast');
+                $items = [];
+
+                foreach ($nodes as $node) {
+                    $node_namespaces = array_merge($namespaces, $node->getNamespaces(true));
+                    $title = trim((string) $node->title);
+                    $external_id = trim((string) ($is_atom ? $node->id : $node->guid));
+                    $description = trim((string) ($is_atom ? $node->summary : $node->description));
+
+                    if (!$is_atom && !empty($node_namespaces['content'])) {
+                        $encoded = trim((string) $node->children($node_namespaces['content'])->encoded);
+                        if ($encoded !== '') $description = $encoded;
+                    }
+                    if ($description === '' && !empty($node_namespaces['itunes'])) {
+                        $description = trim((string) $node->children($node_namespaces['itunes'])->summary);
+                    }
+
+                    $audio_url = '';
+                    if ($is_atom) {
+                        foreach ($node->link as $link) {
+                            $attributes = $link->attributes();
+                            $rel = strtolower((string) ($attributes['rel'] ?? ''));
+                            $type = strtolower((string) ($attributes['type'] ?? ''));
+                            if ($rel === 'enclosure' && ($type === '' || strpos($type, 'audio/') === 0)) {
+                                $audio_url = trim((string) ($attributes['href'] ?? ''));
+                                if ($audio_url !== '') break;
+                            }
+                        }
+                    } else {
+                        foreach ($node->enclosure as $enclosure) {
+                            $attributes = $enclosure->attributes();
+                            $type = strtolower((string) ($attributes['type'] ?? ''));
+                            if ($type === '' || strpos($type, 'audio/') === 0) {
+                                $audio_url = trim((string) ($attributes['url'] ?? ''));
+                                if ($audio_url !== '') break;
+                            }
+                        }
+                    }
+
+                    if ($title === '' || $audio_url === '') {
+                        echo 'Skipping (Missing ' . ($title === '' ? 'title' : 'audio enclosure') . "): " . ($title ?: '[untitled]') . "\n";
+                        $job_skipped_junk++;
+                        continue;
+                    }
+
+                    $date_text = trim((string) ($is_atom ? ($node->published ?: $node->updated) : $node->pubDate));
+                    $timestamp = $date_text !== '' ? strtotime($date_text) : false;
+                    $publish_date = date('Y-m-d H:i:s', $timestamp ?: time());
+                    $duration = null;
+                    if (!empty($node_namespaces['itunes'])) {
+                        $duration = podcastDurationToSeconds($node->children($node_namespaces['itunes'])->duration);
+                    }
+                    $items[] = [
+                        'title' => $title,
+                        'external_id' => $external_id !== '' ? $external_id : null,
+                        'description' => $description,
+                        'audio_url' => $audio_url,
+                        'publish_date' => $publish_date,
+                        'timestamp' => $timestamp ?: 0,
+                        'duration' => $duration,
+                        'image' => podcastImageUrl($node, $node_namespaces) ?: $fallback_image,
+                    ];
+                }
+
+                usort($items, function ($a, $b) { return $b['timestamp'] <=> $a['timestamp']; });
+                foreach ($items as $item) {
+                    if ($job_added_count >= 50) {
+                        echo "Reached podcast RSS per-run cap of 50 new episodes.\n";
+                        break;
+                    }
+                    $check_rss_stmt->execute([$item['external_id'], $item['audio_url'], $item['audio_url']]);
+                    $existing_id = $check_rss_stmt->fetchColumn();
+                    if ($existing_id) {
+                        echo "Skipping (Existing): ID #$existing_id for URL: {$item['audio_url']}\n";
+                        $job_skipped_existing++;
+                        continue;
+                    }
+
+                    $insert_rss_stmt->execute([
+                        $series_id, $item['title'], $item['description'], $item['audio_url'],
+                        $item['external_id'], $item['audio_url'], $item['duration'], $item['image'], $item['publish_date'],
+                    ]);
+                    $new_episode_id = $pdo->lastInsertId();
+                    updateSlug($pdo, $new_episode_id, $item['title'], $item['publish_date']);
+                    foreach ($tag_ids_array as $tag_id) $tag_stmt->execute([$new_episode_id, $tag_id]);
+                    $job_added_count++;
+                    $newly_added_episodes[] = [
+                        'title' => $item['title'], 'series_title' => $series_title,
+                        'url' => $item['audio_url'], 'thumbnail_url' => $item['image'],
+                        'series_id' => $series_db_id, 'series_slug' => $series_slug,
+                        'is_music' => $is_music_job,
+                    ];
+                }
+                #endregion
+
             } elseif ($job_type == 'tvmi' || $job_type == 'one') {
                 #region TVMi and ONE Logic
                 $series_page_html = fetchUrlContent($import_url);
@@ -596,6 +745,8 @@ try {
                     }
                 }
                 #endregion
+            } else {
+                throw new Exception("Unsupported automation job type: $job_type");
             }
 
             $pdo->commit();
