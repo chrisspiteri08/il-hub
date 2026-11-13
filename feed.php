@@ -42,17 +42,24 @@ function feedDescription(?string $description): string
 }
 
 $episodes = $pdo->query(
-    "SELECT e.title,
-            e.slug,
-            e.description,
-            e.thumbnail_url,
-            COALESCE(e.publish_date, e.published_at, e.created_at) AS publication_date,
-            s.title AS series_title
-     FROM episodes e
-     JOIN series s ON s.id = e.series_id
-     WHERE e.slug IS NOT NULL AND TRIM(e.slug) != ''
-       AND e.title NOT IN ('Deleted video', 'Private video')
-     ORDER BY COALESCE(e.publish_date, e.published_at, e.created_at) DESC
+    "WITH ranked AS (
+        SELECT e.title,
+               e.slug,
+               e.description,
+               e.thumbnail_url,
+               e.publish_date AS publication_date,
+               s.title AS series_title,
+               ROW_NUMBER() OVER (PARTITION BY e.series_id ORDER BY e.publish_date DESC, e.id DESC) AS series_rank
+        FROM episodes e
+        JOIN series s ON s.id = e.series_id
+        WHERE e.slug IS NOT NULL AND TRIM(e.slug) != ''
+          AND e.title NOT IN ('Deleted video', 'Private video')
+          AND e.publish_date BETWEEN DATE_SUB(NOW(), INTERVAL 30 DAY) AND NOW()
+     )
+     SELECT title, slug, description, thumbnail_url, publication_date, series_title
+     FROM ranked
+     WHERE series_rank <= 5
+     ORDER BY publication_date DESC
      LIMIT 50"
 )->fetchAll(PDO::FETCH_ASSOC);
 
