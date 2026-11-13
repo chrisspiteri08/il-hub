@@ -23,7 +23,7 @@ function createAutomation(
     array $tagIds,
     int $checkIntervalHours = 1
 ): int {
-    $allowedTypes = ['youtube', 'youtube_channel', 'podcast_rss', 'tvmi', 'one'];
+    $allowedTypes = ['youtube', 'youtube_channel', 'podcast_rss', 'tvmi', 'one', 'netondemand', 'one_play'];
     if ($seriesId < 1 || !in_array($jobType, $allowedTypes, true)) {
         throw new InvalidArgumentException('Invalid automation series or job type.');
     }

@@ -227,6 +227,7 @@ function scrapeEpisodePage($episode_url) {
         if ($property == 'og:description') $og_description = $content;
         if ($property == 'og:image') $details['thumbnail_url'] = $content;
         if ($property == 'article:published_time') $details['publish_date'] = $content;
+        if ($property == 'video:release_date') $details['publish_date'] = $content;
         if ($name == 'description') $std_description = $content;
         if ($name == 'twitter:description') $twitter_description = $content;
     }
@@ -675,6 +676,96 @@ try {
                 }
                 #endregion
 
+            } elseif ($job_type == 'netondemand') {
+                #region NET On Demand Logic
+                $series_page_html = fetchUrlContent($import_url);
+                if (!$series_page_html || strlen($series_page_html) < 100) {
+                    throw new Exception('Could not fetch NET On Demand series page.');
+                }
+
+                $doc = new DOMDocument();
+                @$doc->loadHTML($series_page_html);
+                $episode_urls = [];
+                foreach ($doc->getElementsByTagName('a') as $link) {
+                    $href = trim($link->getAttribute('href'));
+                    if (!preg_match('#^/play/\d+#', $href)) continue;
+                    $episode_urls['https://netondemand.mt' . $href] = true;
+                }
+                echo 'Found ' . count($episode_urls) . " NET On Demand episode link(s).\n";
+
+                foreach (array_keys($episode_urls) as $media_url) {
+                    $check_stmt->execute([$media_url]);
+                    if ($check_stmt->fetchColumn()) {
+                        $job_skipped_existing++;
+                        continue;
+                    }
+                    $details = scrapeEpisodePage($media_url);
+                    if (!$details || empty($details['title'])) continue;
+
+                    $insert_stmt->execute([$series_id, $details['title'], $details['description'], $media_url, $details['thumbnail_url'], 'NET On Demand', $details['publish_date']]);
+                    $new_episode_id = (int) $pdo->lastInsertId();
+                    updateSlug($pdo, $new_episode_id, $details['title'], $details['publish_date']);
+                    foreach ($tag_ids_array as $tag_id) $tag_stmt->execute([$new_episode_id, $tag_id]);
+                    $job_added_count++;
+                    $newly_added_episodes[] = [
+                        'title' => $details['title'], 'series_title' => $series_title,
+                        'url' => $media_url, 'thumbnail_url' => $details['thumbnail_url'],
+                        'series_id' => $series_db_id, 'series_slug' => $series_slug,
+                        'is_music' => $is_music_job,
+                    ];
+                    $net_cap = $max_new_per_job > 0 ? min(50, $max_new_per_job) : 50;
+                    if ($job_added_count >= $net_cap) {
+                        echo "Reached NET On Demand per-run cap of $net_cap new episodes.\n";
+                        break;
+                    }
+                }
+                #endregion
+            } elseif ($job_type == 'one_play') {
+                #region ONE Play daily catch-up logic
+                $one_series_id = (int) $import_url;
+                if ($one_series_id < 1) throw new Exception('Invalid ONE Play series ID.');
+                $one_items = [];
+                for ($days_ago = 0; $days_ago < 9; $days_ago++) {
+                    $day = date('Y-m-d', strtotime("-$days_ago days"));
+                    $api_url = 'https://play.one.com.mt/api/getDayEpisodes/' . $day . '/tv';
+                    $payload = json_decode(fetchUrlContent($api_url, 20), true);
+                    foreach (($payload['episodes'] ?? []) as $episode) {
+                        if ((int) ($episode['series']['id'] ?? 0) !== $one_series_id || !empty($episode['isRepeat'])) continue;
+                        $one_items[(int) $episode['id']] = $episode;
+                    }
+                }
+                uasort($one_items, function ($a, $b) {
+                    return strcmp((string) ($b['startDateTime'] ?? ''), (string) ($a['startDateTime'] ?? ''));
+                });
+                echo 'Found ' . count($one_items) . " ONE Play catch-up episode(s).\n";
+
+                foreach ($one_items as $episode_id => $episode) {
+                    $publish_iso = (string) ($episode['startDateTime'] ?? '');
+                    $publish_date = $publish_iso ? date('Y-m-d H:i:s', strtotime($publish_iso)) : date('Y-m-d H:i:s');
+                    $day = date('Y-m-d', strtotime($publish_date));
+                    $one_title = trim((string) ($episode['series']['name'] ?? $series_title));
+                    $one_slug = make_slug($one_title);
+                    $media_url = 'https://play.one.com.mt/ep/' . $episode_id . '/' . $day . '/' . $one_slug;
+                    $check_stmt->execute([$media_url]);
+                    if ($check_stmt->fetchColumn()) {
+                        $job_skipped_existing++;
+                        continue;
+                    }
+                    $description = trim((string) ($episode['series']['description'] ?? ''));
+                    $thumbnail = (string) ($episode['thumbUrl'] ?? $episode['posterUrl'] ?? 'https://placehold.co/600x400/1f2937/7f9cf5?text=ONE+Play');
+                    $insert_stmt->execute([$series_id, $one_title, $description, $media_url, $thumbnail, 'ONE Play', $publish_date]);
+                    $new_episode_id = (int) $pdo->lastInsertId();
+                    updateSlug($pdo, $new_episode_id, $one_title, $publish_date);
+                    foreach ($tag_ids_array as $tag_id) $tag_stmt->execute([$new_episode_id, $tag_id]);
+                    $job_added_count++;
+                    $newly_added_episodes[] = [
+                        'title' => $one_title, 'series_title' => $series_title,
+                        'url' => $media_url, 'thumbnail_url' => $thumbnail,
+                        'series_id' => $series_db_id, 'series_slug' => $series_slug,
+                        'is_music' => $is_music_job,
+                    ];
+                }
+                #endregion
             } elseif ($job_type == 'tvmi' || $job_type == 'one') {
                 #region TVMi and ONE Logic
                 $series_page_html = fetchUrlContent($import_url);
