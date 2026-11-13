@@ -95,6 +95,21 @@ try {
             // Open in new tab
             window.open(url, '_blank');
         }
+
+        function updateImportField() {
+            const type = document.getElementById('job_type');
+            const label = document.getElementById('import_url_or_id_label');
+            const input = document.getElementById('import_url_or_id');
+            const isPodcast = type && type.value === 'podcast_rss';
+            label.textContent = isPodcast ? 'Podcast RSS feed URL' : 'Import URL or ID';
+            input.placeholder = isPodcast ? 'https://example.com/podcast/feed.xml' : 'e.g., Playlist ID, Channel Handle, or TVMi Link';
+            input.type = isPodcast ? 'url' : 'text';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('job_type').addEventListener('change', updateImportField);
+            updateImportField();
+        });
     </script>
 </head>
 <body class="bg-gray-800 text-gray-200 antialiased p-8">
@@ -118,13 +133,14 @@ try {
                         <option value="">Select a job type</option>
                         <option value="youtube">YouTube Playlist</option>
                         <option value="youtube_channel">YouTube Channel (All Uploads)</option>
+                        <option value="podcast_rss">Podcast RSS feed</option>
                         <option value="tvmi">TVMi Series</option>
                         <option value="one">ONE Series</option>
                     </select>
                 </div>
 
                 <div>
-                    <label for="import_url_or_id" class="block text-sm font-medium text-gray-300">Import URL or ID</label>
+                    <label for="import_url_or_id" id="import_url_or_id_label" class="block text-sm font-medium text-gray-300">Import URL or ID</label>
                     <input type="text" name="import_url_or_id" id="import_url_or_id" required class="mt-1 block w-full bg-gray-600 border-gray-500 rounded-md shadow-sm text-white focus:border-orange-400 focus:ring focus:ring-orange-300 focus:ring-opacity-50" placeholder="e.g., Playlist ID, Channel Handle, or TVMi Link">
                 </div>
 

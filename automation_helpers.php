@@ -23,7 +23,7 @@ function createAutomation(
     array $tagIds,
     int $checkIntervalHours = 1
 ): int {
-    $allowedTypes = ['youtube', 'youtube_channel', 'tvmi', 'one'];
+    $allowedTypes = ['youtube', 'youtube_channel', 'podcast_rss', 'tvmi', 'one'];
     if ($seriesId < 1 || !in_array($jobType, $allowedTypes, true)) {
         throw new InvalidArgumentException('Invalid automation series or job type.');
     }
@@ -34,6 +34,13 @@ function createAutomation(
     }
     if ($jobType === 'youtube') {
         $importUrlOrId = normalizeYouTubePlaylistId($importUrlOrId);
+    } elseif ($jobType === 'podcast_rss') {
+        $importUrlOrId = trim($importUrlOrId);
+        $parts = parse_url($importUrlOrId);
+        if (!filter_var($importUrlOrId, FILTER_VALIDATE_URL)
+            || !in_array(strtolower((string) ($parts['scheme'] ?? '')), ['http', 'https'], true)) {
+            throw new InvalidArgumentException('Podcast RSS feed must be a valid HTTP(S) URL.');
+        }
     } elseif (trim($importUrlOrId) === '') {
         throw new InvalidArgumentException('An import URL or ID is required.');
     }
