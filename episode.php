@@ -88,8 +88,13 @@ function getYoutubeId($url) {
         <?php 
             $yt_id = getYoutubeId($episode['media_url']); 
             $is_tvmi = strpos($episode['media_url'], 'tvmi.mt') !== false;
+            $audio_source = trim((string) ($episode['audio_url'] ?? ''));
+            if ($audio_source === '' && ($episode['platform'] ?? '') === 'Podcast') {
+                $audio_source = (string) $episode['media_url'];
+            }
+            $is_audio = !$yt_id && !$is_tvmi && $audio_source !== '';
         ?>
-        <div class="aspect-video w-full bg-black">
+        <div class="<?php echo $is_audio ? 'w-full bg-black p-6 md:p-10' : 'aspect-video w-full bg-black'; ?>">
             <?php if ($yt_id): ?>
                 <!-- YouTube Player -->
                 <iframe class="w-full h-full" src="https://www.youtube.com/embed/<?php echo $yt_id; ?>?rel=0&modestbranding=1" frameborder="0" allowfullscreen></iframe>
@@ -102,6 +107,20 @@ function getYoutubeId($url) {
                     <a href="<?php echo htmlspecialchars($episode['media_url']); ?>" target="_blank" class="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg">
                         Ara fuq TVMi
                     </a>
+                </div>
+
+            <?php elseif ($is_audio): ?>
+                <!-- Podcast audio player -->
+                <div class="mx-auto flex max-w-4xl flex-col items-center gap-6 rounded-2xl border border-orange-500/30 bg-gray-800 p-6 text-white md:flex-row md:p-8">
+                    <?php if (!empty($episode['thumbnail_url'])): ?>
+                        <img src="<?php echo htmlspecialchars($episode['thumbnail_url']); ?>" alt="" class="h-40 w-40 shrink-0 rounded-2xl object-cover shadow-xl">
+                    <?php endif; ?>
+                    <div class="w-full min-w-0">
+                        <p class="mb-3 text-sm font-bold uppercase tracking-widest text-orange-400">Isma’ l-episodju</p>
+                        <audio controls preload="none" src="<?php echo htmlspecialchars($audio_source); ?>" class="w-full">
+                            Il-browser tiegħek ma jappoġġjax l-awdjo HTML5.
+                        </audio>
+                    </div>
                 </div>
 
             <?php else: ?>
