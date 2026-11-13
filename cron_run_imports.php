@@ -290,6 +290,7 @@ echo "Cron Job Started: $start_time\n";
 
 $total_episodes_added = 0;
 $newly_added_episodes = []; 
+$max_new_per_job = isset($_GET['max_new']) ? max(0, min(500, (int) $_GET['max_new'])) : 0;
 
 try {
     // --- Selective Job Running ---
@@ -536,6 +537,10 @@ try {
                                 'is_music' => $is_music_job // Store the flag
                             ]; 
                             foreach ($tag_ids_array as $tag_id) $tag_stmt->execute([$new_episode_id, $tag_id]);
+                            if ($max_new_per_job > 0 && $job_added_count >= $max_new_per_job) {
+                                echo "Reached requested per-job cap of $max_new_per_job new episodes.\n";
+                                break 2;
+                            }
                         }
                         
                         $nextPageToken = isset($data['nextPageToken']) ? $data['nextPageToken'] : '';

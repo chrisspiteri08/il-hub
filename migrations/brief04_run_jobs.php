@@ -10,4 +10,7 @@ if ($argc < 2 || !preg_match('/^\d+(?:,\d+)*$/', $argv[1])) {
 require dirname(__DIR__) . '/config_loader.php';
 $_GET['key'] = $settings['cron_secret_key'];
 $_GET['jobs'] = $argv[1];
+if (isset($argv[2]) && ctype_digit($argv[2])) {
+    $_GET['max_new'] = (int) $argv[2];
+}
 require dirname(__DIR__) . '/cron_run_imports.php';
