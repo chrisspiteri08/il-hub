@@ -402,11 +402,27 @@ try {
 
     // Prepare reusable database statements
     $insert_stmt = $pdo->prepare("INSERT INTO episodes (series_id, title, description, media_url, thumbnail_url, platform, publish_date) VALUES (?, ?, ?, ?, ?, ?, ?)");
+    $insert_external_stmt = $pdo->prepare("INSERT INTO episodes (series_id, title, description, media_url, external_id, duration_seconds, media_kind, thumbnail_url, platform, publish_date) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)");
     $insert_rss_stmt = $pdo->prepare("INSERT INTO episodes (series_id, title, description, media_url, external_id, audio_url, duration_seconds, media_kind, thumbnail_url, platform, publish_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Podcast', ?)");
     $check_stmt = $pdo->prepare("SELECT id FROM episodes WHERE media_url = ?");
+    $check_external_stmt = $pdo->prepare("SELECT id FROM episodes WHERE (external_id IS NOT NULL AND external_id = ?) OR media_url = ? LIMIT 1");
     $check_rss_stmt = $pdo->prepare("SELECT id FROM episodes WHERE (external_id IS NOT NULL AND external_id = ?) OR audio_url = ? OR media_url = ? LIMIT 1");
     $tag_stmt = $pdo->prepare("INSERT INTO episode_tags (episode_id, tag_id) VALUES (?, ?)");
     $update_job_stmt = $pdo->prepare("UPDATE automated_imports SET last_checked_at = NOW() WHERE id = ?");
+
+    // ONE exposes a day schedule, not a per-series feed. Fetch each of the ten
+    // rolling days once and share the result between every ONE Play job.
+    $one_play_cache = [];
+    $has_one_play_jobs = count(array_filter($jobs, fn($candidate) => ($candidate['job_type'] ?? '') === 'one_play')) > 0;
+    if ($has_one_play_jobs) {
+        for ($days_ago = 0; $days_ago < 10; $days_ago++) {
+            $day = date('Y-m-d', strtotime("-$days_ago days"));
+            $api_url = 'https://play.one.com.mt/api/getDayEpisodes/' . $day . '/tv';
+            $payload = json_decode(fetchUrlContent($api_url, 20), true);
+            $one_play_cache[$day] = is_array($payload['episodes'] ?? null) ? $payload['episodes'] : [];
+        }
+        echo 'Cached ' . count($one_play_cache) . " ONE Play day schedule(s).\n";
+    }
 
     foreach ($jobs as $job) {
         if ((microtime(true) - $cron_started_at) >= 480) {
@@ -753,35 +769,65 @@ try {
 
                 $doc = new DOMDocument();
                 @$doc->loadHTML($series_page_html);
-                $episode_urls = [];
-                foreach ($doc->getElementsByTagName('a') as $link) {
-                    $href = trim($link->getAttribute('href'));
-                    if (!preg_match('#^/play/\d+#', $href)) continue;
-                    $episode_urls['https://netondemand.mt' . $href] = true;
+                $xpath = new DOMXPath($doc);
+                $series_description = '';
+                foreach ($doc->getElementsByTagName('meta') as $meta) {
+                    if ($meta->getAttribute('property') === 'og:description') $series_description = trim($meta->getAttribute('content'));
                 }
-                echo 'Found ' . count($episode_urls) . " NET On Demand episode link(s).\n";
+                $episode_cards = [];
+                foreach ($xpath->query("//a[contains(concat(' ', normalize-space(@class), ' '), ' video-preview ')]") as $link) {
+                    $href = trim($link->getAttribute('href'));
+                    if (!preg_match('#^/play/(\d+)$#', $href, $play_match)) continue;
+                    $date_text = '';
+                    $duration_seconds = null;
+                    foreach ($xpath->query('.//span', $link) as $span) {
+                        $text = trim(preg_replace('/\s+/u', ' ', $span->textContent));
+                        if (preg_match('#^\d{2}/\d{2}/\d{4}$#', $text)) $date_text = $text;
+                        if (preg_match('/^(\d+)\s*min$/i', $text, $duration_match)) $duration_seconds = (int)$duration_match[1] * 60;
+                    }
+                    $date_object = DateTime::createFromFormat('!d/m/Y', $date_text);
+                    if (!$date_object) continue;
+                    $thumbnail = '';
+                    foreach ($xpath->query('.//img', $link) as $image) {
+                        $thumbnail = trim($image->getAttribute('data-original') ?: $image->getAttribute('src'));
+                        if ($thumbnail !== '') break;
+                    }
+                    if (str_contains($thumbnail, '/images/nothumb.jpg')) $thumbnail = '';
+                    $episode_cards[(int)$play_match[1]] = [
+                        'media_url' => 'https://netondemand.mt/play/' . (int)$play_match[1],
+                        'external_id' => 'netondemand:' . (int)$play_match[1],
+                        'title' => $series_title . ' - ' . $date_text,
+                        'description' => $series_description,
+                        'thumbnail' => $thumbnail ?: (string)$job['series_image'],
+                        'publish_date' => $date_object->format('Y-m-d 00:00:00'),
+                        'duration_seconds' => $duration_seconds,
+                    ];
+                }
+                uasort($episode_cards, fn($a, $b) => strcmp($b['publish_date'], $a['publish_date']));
+                echo 'Found ' . count($episode_cards) . " NET On Demand listing card(s).\n";
 
-                foreach (array_keys($episode_urls) as $media_url) {
-                    $check_stmt->execute([$media_url]);
-                    if ($check_stmt->fetchColumn()) {
+                foreach ($episode_cards as $details) {
+                    if (!isHttpMediaUrl($details['media_url'])) continue;
+                    $check_external_stmt->execute([$details['external_id'], $details['media_url']]);
+                    $existing_id = $check_external_stmt->fetchColumn();
+                    if ($existing_id) {
+                        $pdo->prepare('UPDATE episodes SET external_id = COALESCE(external_id, ?), duration_seconds = COALESCE(duration_seconds, ?) WHERE id = ?')
+                            ->execute([$details['external_id'], $details['duration_seconds'], $existing_id]);
                         $job_skipped_existing++;
                         continue;
                     }
-                    $details = scrapeEpisodePage($media_url);
-                    if (!$details || empty($details['title'])) continue;
-
-                    $insert_stmt->execute([$series_id, $details['title'], $details['description'], $media_url, $details['thumbnail_url'], 'NET On Demand', $details['publish_date']]);
+                    $insert_external_stmt->execute([$series_id, $details['title'], $details['description'], $details['media_url'], $details['external_id'], $details['duration_seconds'], $details['thumbnail'], 'NET On Demand', $details['publish_date']]);
                     $new_episode_id = (int) $pdo->lastInsertId();
                     updateSlug($pdo, $new_episode_id, $details['title'], $details['publish_date']);
                     foreach ($tag_ids_array as $tag_id) $tag_stmt->execute([$new_episode_id, $tag_id]);
                     $job_added_count++;
                     $newly_added_episodes[] = [
                         'title' => $details['title'], 'series_title' => $series_title,
-                        'url' => $media_url, 'thumbnail_url' => $details['thumbnail_url'],
+                        'url' => $details['media_url'], 'thumbnail_url' => $details['thumbnail'],
                         'series_id' => $series_db_id, 'series_slug' => $series_slug,
                         'is_music' => $is_music_job,
                     ];
-                    $net_cap = $max_new_per_job > 0 ? min(50, $max_new_per_job) : 50;
+                    $net_cap = $max_new_per_job > 0 ? $max_new_per_job : 50;
                     if ($job_added_count >= $net_cap) {
                         echo "Reached NET On Demand per-run cap of $net_cap new episodes.\n";
                         break;
@@ -793,12 +839,9 @@ try {
                 $one_series_id = (int) $import_url;
                 if ($one_series_id < 1) throw new Exception('Invalid ONE Play series ID.');
                 $one_items = [];
-                for ($days_ago = 0; $days_ago < 9; $days_ago++) {
-                    $day = date('Y-m-d', strtotime("-$days_ago days"));
-                    $api_url = 'https://play.one.com.mt/api/getDayEpisodes/' . $day . '/tv';
-                    $payload = json_decode(fetchUrlContent($api_url, 20), true);
-                    foreach (($payload['episodes'] ?? []) as $episode) {
-                        if ((int) ($episode['series']['id'] ?? 0) !== $one_series_id || !empty($episode['isRepeat'])) continue;
+                foreach ($one_play_cache as $day_episodes) {
+                    foreach ($day_episodes as $episode) {
+                        if ((int) ($episode['series']['id'] ?? 0) !== $one_series_id || !empty($episode['isRepeat']) || empty($episode['clipMedia']['url'])) continue;
                         $one_items[(int) $episode['id']] = $episode;
                     }
                 }
@@ -811,17 +854,24 @@ try {
                     $publish_iso = (string) ($episode['startDateTime'] ?? '');
                     $publish_date = $publish_iso ? date('Y-m-d H:i:s', strtotime($publish_iso)) : date('Y-m-d H:i:s');
                     $day = date('Y-m-d', strtotime($publish_date));
-                    $one_title = trim((string) ($episode['series']['name'] ?? $series_title));
-                    $one_slug = make_slug($one_title);
+                    $one_series_name = trim((string) ($episode['series']['name'] ?? $series_title));
+                    $one_title = $one_series_name . ' - ' . date('d/m/Y', strtotime($publish_date));
+                    $one_slug = make_slug($one_series_name);
                     $media_url = 'https://play.one.com.mt/ep/' . $episode_id . '/' . $day . '/' . $one_slug;
-                    $check_stmt->execute([$media_url]);
-                    if ($check_stmt->fetchColumn()) {
+                    $external_id = 'one_play:' . $episode_id;
+                    if (!isHttpMediaUrl($media_url)) continue;
+                    $check_external_stmt->execute([$external_id, $media_url]);
+                    $existing_id = $check_external_stmt->fetchColumn();
+                    if ($existing_id) {
+                        $pdo->prepare('UPDATE episodes SET external_id = COALESCE(external_id, ?), duration_seconds = COALESCE(duration_seconds, ?) WHERE id = ?')
+                            ->execute([$external_id, isset($episode['durationMin']) ? (int)$episode['durationMin'] * 60 : null, $existing_id]);
                         $job_skipped_existing++;
                         continue;
                     }
                     $description = trim((string) ($episode['series']['description'] ?? ''));
                     $thumbnail = (string) ($episode['thumbUrl'] ?? $episode['posterUrl'] ?? 'https://placehold.co/600x400/1f2937/7f9cf5?text=ONE+Play');
-                    $insert_stmt->execute([$series_id, $one_title, $description, $media_url, $thumbnail, 'ONE Play', $publish_date]);
+                    $duration_seconds = isset($episode['durationMin']) ? (int)$episode['durationMin'] * 60 : null;
+                    $insert_external_stmt->execute([$series_id, $one_title, $description, $media_url, $external_id, $duration_seconds, $thumbnail, 'ONE Play', $publish_date]);
                     $new_episode_id = (int) $pdo->lastInsertId();
                     updateSlug($pdo, $new_episode_id, $one_title, $publish_date);
                     foreach ($tag_ids_array as $tag_id) $tag_stmt->execute([$new_episode_id, $tag_id]);
@@ -832,6 +882,11 @@ try {
                         'series_id' => $series_db_id, 'series_slug' => $series_slug,
                         'is_music' => $is_music_job,
                     ];
+                    $one_cap = $max_new_per_job > 0 ? min(50, $max_new_per_job) : 50;
+                    if ($job_added_count >= $one_cap) {
+                        echo "Reached ONE Play per-run cap of $one_cap new episodes.\n";
+                        break;
+                    }
                 }
                 #endregion
             } elseif ($job_type == 'tvmi' || $job_type == 'one') {
