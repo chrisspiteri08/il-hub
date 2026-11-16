@@ -12,7 +12,7 @@ $titleCount = 0;
 
 foreach ($select as $episode) {
     $externalId = null;
-    if ($episode['platform'] === 'NET On Demand' && preg_match('#/play/(\d+)(?:$|[/?#])#', $episode['media_url'], $match)) {
+    if ($episode['platform'] === 'NET On Demand' && preg_match('#/play/(\d+)(?:$|[/?])#', $episode['media_url'], $match)) {
         $externalId = 'netondemand:' . $match[1];
     } elseif ($episode['platform'] === 'ONE Play' && preg_match('#/ep/(\d+)(?:/|$)#', $episode['media_url'], $match)) {
         $externalId = 'one_play:' . $match[1];
