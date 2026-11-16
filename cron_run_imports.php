@@ -1,10 +1,14 @@
 <?php
-// --- FORCE ERROR DISPLAY ---
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+// Keep failures in the cron log rather than exposing them in an HTTP response.
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
-// Set a longer execution time, as scraping/API pagination can be slow
-set_time_limit(600); // 10 minutes
+ignore_user_abort(true);
+@set_time_limit(600); // 10 minutes; the loop stops starting jobs after 8 minutes.
+$cron_started_at = microtime(true);
+$cron_log_written = false;
+$cron_finished_cleanly = false;
+$cron_lock_handle = null;
 
 // Start output buffering to capture all echos for the log
 ob_start();
@@ -21,11 +25,66 @@ $fb_page_token = $settings['fb_page_token'];
 $fb_autopost_enabled = ($settings['fb_autopost_enabled'] ?? '0') === '1';
 $youtube_api_key = $settings['youtube_api_key']; // Get the global key
 
+// CLI runs do not need to expose the secret in a process list or crontab.
+if (PHP_SAPI === 'cli' && empty($_GET['key'])) {
+    $_GET['key'] = $secret_key;
+}
+
 // 1. Check the secret key
 if (!isset($_GET['key']) || $_GET['key'] !== $secret_key) {
     http_response_code(403);
     die("Access denied. This script must be run by the server.");
 }
+
+// Only one importer may run at a time. A dead process releases flock
+// automatically; rewriting the PID/timestamp also clears stale metadata.
+$lock_dir = __DIR__ . '/cache';
+if (!is_dir($lock_dir)) @mkdir($lock_dir, 0755, true);
+$lock_path = $lock_dir . '/cron_run_imports.lock';
+$cron_lock_handle = @fopen($lock_path, 'c+');
+if (!$cron_lock_handle) {
+    http_response_code(500);
+    die('Unable to open importer lock.');
+}
+if (!flock($cron_lock_handle, LOCK_EX | LOCK_NB)) {
+    $lock_age = is_file($lock_path) ? max(0, time() - (int) filemtime($lock_path)) : 0;
+    $summary = 'Cron skipped: already running' . ($lock_age > 1500 ? ' (lock metadata is older than 25 minutes)' : '') . ".\n";
+    $stmt = $pdo->prepare('INSERT INTO cron_logs (status, summary) VALUES (?, ?)');
+    $stmt->execute(['Success', $summary]);
+    fclose($cron_lock_handle);
+    echo $summary;
+    exit;
+}
+ftruncate($cron_lock_handle, 0);
+fwrite($cron_lock_handle, getmypid() . "\t" . date('c') . "\n");
+fflush($cron_lock_handle);
+@touch($lock_path);
+
+register_shutdown_function(function () use (&$pdo, &$cron_log_written, &$cron_finished_cleanly, &$cron_lock_handle) {
+    if (isset($pdo) && $pdo instanceof PDO && $pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
+    if (!$cron_log_written && isset($pdo) && $pdo instanceof PDO) {
+        $summary = ob_get_contents() ?: '';
+        $fatal = error_get_last();
+        $summary .= "\n--- CRON ABORTED ---\n";
+        if ($fatal && in_array($fatal['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) {
+            $summary .= 'Fatal: ' . $fatal['message'] . ' in ' . basename($fatal['file']) . ':' . $fatal['line'] . "\n";
+        } elseif (!$cron_finished_cleanly) {
+            $summary .= "Importer ended before the normal footer.\n";
+        }
+        try {
+            $stmt = $pdo->prepare('INSERT INTO cron_logs (status, summary) VALUES (?, ?)');
+            $stmt->execute(['Failure', $summary]);
+            $cron_log_written = true;
+        } catch (Throwable $ignored) {}
+    }
+    if (is_resource($cron_lock_handle)) {
+        flock($cron_lock_handle, LOCK_UN);
+        fclose($cron_lock_handle);
+        $cron_lock_handle = null;
+    }
+});
 
 // 2. DB connection is already included via config_loader.php
 
@@ -330,6 +389,11 @@ try {
         echo "No jobs scheduled to run. Exiting.\n";
         $summary = ob_get_clean();
         writeToLog($pdo, $summary, 'Success');
+        $cron_log_written = true;
+        $cron_finished_cleanly = true;
+        flock($cron_lock_handle, LOCK_UN);
+        fclose($cron_lock_handle);
+        $cron_lock_handle = null;
         echo $summary;
         exit;
     }
@@ -345,6 +409,10 @@ try {
     $update_job_stmt = $pdo->prepare("UPDATE automated_imports SET last_checked_at = NOW() WHERE id = ?");
 
     foreach ($jobs as $job) {
+        if ((microtime(true) - $cron_started_at) >= 480) {
+            echo "Run-time budget reached; remaining jobs will wait for the next run.\n";
+            break;
+        }
         $job_id = $job['id'];
         $series_id = $job['series_id'];
         $series_title = $job['series_title'];
@@ -921,6 +989,11 @@ try {
     echo "Cron Job Finished: " . date('Y-m-d H:i:s') . "\n";
     $summary = ob_get_clean();
     writeToLog($pdo, $summary, 'Success');
+    $cron_log_written = true;
+    $cron_finished_cleanly = true;
+    flock($cron_lock_handle, LOCK_UN);
+    fclose($cron_lock_handle);
+    $cron_lock_handle = null;
     echo $summary;
 
 } catch (Exception $e) {
@@ -929,6 +1002,10 @@ try {
     echo $error_message . "\n";
     $summary = ob_get_clean();
     writeToLog($pdo, $summary, 'Failure');
+    $cron_log_written = true;
+    flock($cron_lock_handle, LOCK_UN);
+    fclose($cron_lock_handle);
+    $cron_lock_handle = null;
     echo $summary;
 }
 ?>
