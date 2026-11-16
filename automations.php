@@ -101,8 +101,10 @@ try {
             const label = document.getElementById('import_url_or_id_label');
             const input = document.getElementById('import_url_or_id');
             const isPodcast = type && type.value === 'podcast_rss';
-            label.textContent = isPodcast ? 'Podcast RSS feed URL' : 'Import URL or ID';
-            input.placeholder = isPodcast ? 'https://example.com/podcast/feed.xml' : 'e.g., Playlist ID, Channel Handle, or TVMi Link';
+            const isNet = type && type.value === 'netondemand';
+            const isOnePlay = type && type.value === 'one_play';
+            label.textContent = isPodcast ? 'Podcast RSS feed URL' : (isNet ? 'NET On Demand series URL' : (isOnePlay ? 'ONE Play numeric series ID' : 'Import URL or ID'));
+            input.placeholder = isPodcast ? 'https://example.com/podcast/feed.xml' : (isNet ? 'https://netondemand.mt/series/123' : (isOnePlay ? 'e.g., 665' : 'e.g., Playlist ID, Channel Handle, or TVMi Link'));
             input.type = isPodcast ? 'url' : 'text';
         }
 
@@ -136,6 +138,8 @@ try {
                         <option value="podcast_rss">Podcast RSS feed</option>
                         <option value="tvmi">TVMi Series</option>
                         <option value="one">ONE Series</option>
+                        <option value="netondemand">NET On Demand series</option>
+                        <option value="one_play">ONE Play series</option>
                     </select>
                 </div>
 

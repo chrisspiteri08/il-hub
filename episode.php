@@ -90,6 +90,8 @@ function getYoutubeId($url) {
             $media_source = isHttpMediaUrl($episode['media_url'] ?? null) ? (string) $episode['media_url'] : '';
             $yt_id = $media_source !== '' ? getYoutubeId($media_source) : null;
             $is_tvmi = $media_source !== '' && strpos($media_source, 'tvmi.mt') !== false;
+            $is_net_on_demand = $media_source !== '' && strpos($media_source, 'netondemand.mt') !== false;
+            $is_one_play = $media_source !== '' && strpos($media_source, 'play.one.com.mt') !== false;
             $media_kind = strtolower((string) ($episode['media_kind'] ?? ''));
             if ($media_kind === '' && $media_source !== '') {
                 $media_kind = podcastMediaKind('', $media_source) ?? '';
@@ -98,8 +100,8 @@ function getYoutubeId($url) {
             if ($audio_source === '' && ($episode['platform'] ?? '') === 'Podcast' && $media_kind !== 'video') {
                 $audio_source = $media_source;
             }
-            $is_video = !$yt_id && !$is_tvmi && $media_kind === 'video' && $media_source !== '';
-            $is_audio = !$yt_id && !$is_tvmi && !$is_video && $audio_source !== '';
+            $is_video = !$yt_id && !$is_tvmi && !$is_net_on_demand && !$is_one_play && $media_kind === 'video' && $media_source !== '';
+            $is_audio = !$yt_id && !$is_tvmi && !$is_net_on_demand && !$is_one_play && !$is_video && $audio_source !== '';
         ?>
         <div class="<?php echo $is_audio ? 'w-full bg-black p-6 md:p-10' : 'aspect-video w-full bg-black'; ?>">
             <?php if ($yt_id): ?>
@@ -113,6 +115,24 @@ function getYoutubeId($url) {
                     <p class="mb-5 font-semibold text-lg text-white">Dan l-episodju jinsab fuq TVMi</p>
                     <a href="<?php echo htmlspecialchars($episode['media_url']); ?>" target="_blank" class="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg">
                         Ara fuq TVMi
+                    </a>
+                </div>
+
+            <?php elseif ($is_net_on_demand): ?>
+                <div class="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-800">
+                    <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p class="mb-5 font-semibold text-lg text-white">Dan l-episodju jinsab fuq NET On Demand</p>
+                    <a href="<?php echo htmlspecialchars($media_source); ?>" target="_blank" rel="noopener noreferrer" class="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg">
+                        Ara fuq NET On Demand
+                    </a>
+                </div>
+
+            <?php elseif ($is_one_play): ?>
+                <div class="flex flex-col items-center justify-center h-full text-gray-400 bg-gray-800">
+                    <svg class="w-16 h-16 mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p class="mb-5 font-semibold text-lg text-white">Dan l-episodju jinsab fuq ONE Play</p>
+                    <a href="<?php echo htmlspecialchars($media_source); ?>" target="_blank" rel="noopener noreferrer" class="bg-orange-600 hover:bg-orange-500 text-white px-8 py-3 rounded-full font-bold transition-all shadow-lg">
+                        Ara fuq ONE Play
                     </a>
                 </div>
 
